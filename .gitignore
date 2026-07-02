@@ -1,0 +1,14 @@
+# Python
+.venv/
+.uvenv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# OS / editor
+.DS_Store
+._*
+
+# scratch results
+results/*.tmp.json

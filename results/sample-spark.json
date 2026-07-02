@@ -1,0 +1,246 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "sample-synthetic-v1",
+    "timestamp": "2026-06-25T00:00:00Z",
+    "harness_version": "0.0.0-sample",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    }
+  },
+  "series": [
+    {
+      "id": "l8-fp8-sglang",
+      "model": "Llama-3.1-8B",
+      "params_b": 8,
+      "quant": "FP8",
+      "backend": "SGLang",
+      "status": "measured",
+      "weights_gb": 8,
+      "max_concurrency": 96,
+      "source": "LMSYS 2025-10-13 (anchors); curve interpolated",
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 20.5,
+          "per_session_tok_s": 20.5,
+          "ttft_ms": {
+            "p50": 130,
+            "p95": 221,
+            "p99": 313
+          },
+          "itl_ms": {
+            "p50": 48.8
+          },
+          "anchor": true
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 53.1,
+          "per_session_tok_s": 26.5,
+          "ttft_ms": {
+            "p50": 131,
+            "p95": 222,
+            "p99": 314
+          },
+          "itl_ms": {
+            "p50": 37.7
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 121.2,
+          "per_session_tok_s": 30.3,
+          "ttft_ms": {
+            "p50": 132,
+            "p95": 225,
+            "p99": 318
+          },
+          "itl_ms": {
+            "p50": 33
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 221.7,
+          "per_session_tok_s": 27.7,
+          "ttft_ms": {
+            "p50": 137,
+            "p95": 233,
+            "p99": 330
+          },
+          "itl_ms": {
+            "p50": 36.1
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 313.8,
+          "per_session_tok_s": 19.6,
+          "ttft_ms": {
+            "p50": 152,
+            "p95": 259,
+            "p99": 365
+          },
+          "itl_ms": {
+            "p50": 51
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 367.8,
+          "per_session_tok_s": 11.5,
+          "ttft_ms": {
+            "p50": 197,
+            "p95": 335,
+            "p99": 473
+          },
+          "itl_ms": {
+            "p50": 87
+          },
+          "anchor": true
+        },
+        {
+          "concurrency": 64,
+          "agg_tok_s": 391.6,
+          "per_session_tok_s": 6.1,
+          "ttft_ms": {
+            "p50": 334,
+            "p95": 568,
+            "p99": 801
+          },
+          "itl_ms": {
+            "p50": 163.4
+          },
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "l8-nvfp4-vllm",
+      "model": "Llama-3.1-8B",
+      "params_b": 8,
+      "quant": "NVFP4",
+      "backend": "vLLM",
+      "status": "projected",
+      "weights_gb": 4.5,
+      "max_concurrency": 128,
+      "source": "projected from FP8 anchor (NOT yet measured)",
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 36.4,
+          "per_session_tok_s": 36.4,
+          "ttft_ms": {
+            "p50": 120,
+            "p95": 204,
+            "p99": 288
+          },
+          "itl_ms": {
+            "p50": 27.5
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 101,
+          "per_session_tok_s": 50.5,
+          "ttft_ms": {
+            "p50": 120,
+            "p95": 205,
+            "p99": 289
+          },
+          "itl_ms": {
+            "p50": 19.8
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 243.7,
+          "per_session_tok_s": 60.9,
+          "ttft_ms": {
+            "p50": 121,
+            "p95": 206,
+            "p99": 291
+          },
+          "itl_ms": {
+            "p50": 16.4
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 456.3,
+          "per_session_tok_s": 57,
+          "ttft_ms": {
+            "p50": 124,
+            "p95": 211,
+            "p99": 298
+          },
+          "itl_ms": {
+            "p50": 17.5
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 640.8,
+          "per_session_tok_s": 40.1,
+          "ttft_ms": {
+            "p50": 133,
+            "p95": 226,
+            "p99": 319
+          },
+          "itl_ms": {
+            "p50": 25
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 739.4,
+          "per_session_tok_s": 23.1,
+          "ttft_ms": {
+            "p50": 159,
+            "p95": 271,
+            "p99": 382
+          },
+          "itl_ms": {
+            "p50": 43.3
+          },
+          "anchor": false
+        },
+        {
+          "concurrency": 64,
+          "agg_tok_s": 778.9,
+          "per_session_tok_s": 12.2,
+          "ttft_ms": {
+            "p50": 239,
+            "p95": 406,
+            "p99": 573
+          },
+          "itl_ms": {
+            "p50": 82.2
+          },
+          "anchor": false
+        }
+      ]
+    }
+  ]
+}

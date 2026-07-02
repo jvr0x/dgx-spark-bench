@@ -1,0 +1,35 @@
+# No-GPU smoke config: runs the full pipeline against `python mock_openai.py`.
+# Verifies recipe -> harness -> schema-valid results.json on any laptop.
+#   python mock_openai.py --port 8123 --ttft-ms 50 --itl-ms 10 --tokens 32  &
+#   python bench.py configs/mock-local.yaml -o /tmp/mock.json
+
+series:
+  id: mock-local
+  model: mock
+  params_b: 0
+  quant: none
+  backend: mock
+  status: projected   # not a real model — keep it visually dashed in the UI
+  weights_gb: 0
+
+engine:
+  base_url: http://127.0.0.1:8123
+  model: mock
+  api_key: dummy
+  extra_body: {}
+
+hardware:
+  name: laptop-mock
+  mem_gb: 0
+  bw_gbs: 0
+
+workload:
+  name: chat
+  prompt_tokens: 64
+  output_tokens: 32
+
+sweep:
+  concurrencies: [1, 2, 4]
+  warmup_s: 1
+  measure_s: 3
+  request_timeout_s: 60

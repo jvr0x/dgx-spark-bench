@@ -1,0 +1,42 @@
+# Flagship run config: Llama-3.1-8B, NVFP4, served by vLLM on a DGX Spark.
+# Used by:  python bench.py configs/llama31-8b-nvfp4-vllm.yaml -o ../results/llama31-8b-nvfp4-vllm.json
+# Assumes the matching recipe (recipes/llama31-8b-nvfp4-vllm/) has the engine running.
+
+series:
+  id: llama31-8b-nvfp4-vllm
+  model: Llama-3.1-8B
+  params_b: 8
+  quant: NVFP4
+  backend: vLLM
+  status: measured
+  weights_gb: 4.5
+
+engine:
+  base_url: http://localhost:8000
+  # Served model id — must match what the recipe launches. Verify the exact NVFP4 checkpoint.
+  model: nvidia/Llama-3.1-8B-Instruct-FP4
+  api_key: dummy
+  extra_body:
+    # Force exactly output_tokens per request so decode counts are constant and comparable.
+    # vLLM/SGLang honour these; drop them for backends that reject unknown fields.
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32, 48, 64]
+  warmup_s: 8
+  measure_s: 30
+  request_timeout_s: 300
