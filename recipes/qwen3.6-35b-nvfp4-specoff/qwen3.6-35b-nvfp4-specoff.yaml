@@ -1,0 +1,42 @@
+# lmswitch BENCH PROFILE of qwen3.6-35b-nvfp4-specoff — MTP disabled.
+#
+# IDENTICAL to qwen3.6-35b-nvfp4-bench.yaml EXCEPT the speculative decoding block
+# is removed. This gives the "hardware truth" (no spec-decode) for comparison
+# against the spec_on flagship run.
+#
+# Filename id = served-model-name = "qwen3.6-35b-nvfp4-specoff".
+# Place in your lmswitch ai-models/, then:
+#   lmswitch on qwen3.6-35b-nvfp4-specoff
+
+runtime: vllm
+model: "nvidia/qwen3.6-35b-a3b-nvfp4"
+port: 8215
+display_name: "Qwen3.6-35B-A3B NVFP4 [SPECOFF]"
+
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+entrypoint: "vllm serve"
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+
+gpu_memory_utilization: 0.5
+max_num_seqs: 64
+tool_call_parser: "qwen3_xml"
+reasoning_parser: "qwen3"
+attention_backend: "flashinfer"
+load_format: "fastsafetensors"
+trust_remote_code: true
+enforce_eager: false
+
+extra_args:
+  - "--kv-cache-memory-bytes"
+  - "34359738368"                  # 32 GiB — same explicit KV cap as spec_on
+  - "--kv-cache-dtype"
+  - "fp8"
+  - "--max-num-batched-tokens"
+  - "8192"
+  - "--enable-chunked-prefill"
+  - "--async-scheduling"
+  - "--enable-prefix-caching"
+  # NO --speculative-config — spec_off baseline (hardware truth)

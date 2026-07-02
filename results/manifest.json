@@ -1,5 +1,6 @@
 {
   "files": [
-    "qwen3.6-35b-nvfp4-nvidia.json"
+    "qwen3.6-35b-nvfp4-nvidia.json",
+    "qwen3.6-35b-nvfp4-nvidia-specoff.json"
   ]
 }
