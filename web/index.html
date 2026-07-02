@@ -4,26 +4,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DGX Spark · LLM Throughput Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* ground — blue-biased dark neutral, chosen not defaulted */
-    --bg:#0B0E13; --panel:#121821; --panel-2:#19212C; --line:#27313D; --line-2:#323e4d;
-    --ink:#E6EDF3; --ink-dim:#8B97A6; --ink-faint:#5b6675;
-    /* categorical curve palette — no red family (reserved for SLA) */
-    --c1:#3FD0D6; --c2:#5FD08A; --c3:#F2B33D; --c4:#9B8CFF; --c5:#5BA9F0; --c6:#E8639B; --c7:#C3E057;
-    --sla:#FF4D4D; --good:#5FD08A; --warn:#F2B33D;
-    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    /* ground — jvr0x.github.io matrix-terminal tokens */
+    --bg:#0a0e14; --panel:#0f1419; --panel-2:#141a22; --line:#1e2a36; --line-2:#2b3a4a;
+    --ink:#c5cdd8; --ink-dim:#5a6a7a; --ink-faint:#46545f;
+    --green:#00ff41; --green-dim:#00cc33; --cyan:#00d4ff; --white:#e8edf3;
+    /* categorical curve palette — brand hues snapped into the dark-mode lightness band
+       (OKLCH L 0.48–0.67) and CVD/contrast-validated on --bg; red reserved for SLA */
+    --c1:#00b32d; --c2:#00a3c4; --c3:#c4861f; --c4:#8b78f5; --c5:#d95c94; --c6:#4f8fd9; --c7:#b8763a;
+    --sla:#ff4d4d; --good:#00cc33; --warn:#c4861f;
+    --mono:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,Menlo,Consolas,monospace;
+    --sans:var(--mono);
   }
   *{box-sizing:border-box}
   html,body{margin:0}
-  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:14px;line-height:1.6;
     -webkit-font-smoothing:antialiased;padding:28px clamp(16px,4vw,48px) 64px}
+  .scanline{position:fixed;inset:0;pointer-events:none;z-index:999;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px)}
+  a{color:var(--green);text-decoration:none;transition:color .2s}
+  a:hover{color:var(--cyan)}
+  ::selection{background:#00802080;color:var(--white)}
   .app{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
-  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim)}
-  h1{font-size:clamp(22px,3.4vw,32px);line-height:1.15;margin:6px 0 0;font-weight:650;text-wrap:balance;letter-spacing:-.01em}
-  h1 .accent{color:var(--c1)}
-  .sub{color:var(--ink-dim);margin-top:8px;max-width:62ch}
+  .topbar{display:flex;justify-content:space-between;align-items:baseline;font-size:.85rem}
+  .topbar .logo{color:var(--green);font-weight:700}
+  .blink{animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+  .topbar .back{color:var(--ink-dim);border-bottom:1px dashed var(--line);padding-bottom:2px}
+  .topbar .back:hover{color:var(--green);border-color:var(--green)}
+  .eyebrow{font-family:var(--mono);font-size:.85rem;color:var(--green);opacity:.8;margin-bottom:.6rem}
+  h1{font-size:clamp(20px,3vw,28px);line-height:1.25;margin:6px 0 0;font-weight:700;text-wrap:balance;color:var(--white)}
+  h1 .accent{color:var(--green)}
+  .sub{color:var(--ink-dim);margin-top:8px}
 
   /* spec strip */
   .specs{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
@@ -45,9 +61,9 @@
   .chip.off{opacity:.42}
   .chip.off .dot{background:var(--ink-faint)!important}
   .chip .tag{font-size:10px;padding:1px 5px;border-radius:4px;letter-spacing:.04em}
-  .chip .m{background:rgba(95,208,138,.14);color:var(--good)}
-  .chip .p{background:rgba(242,179,61,.14);color:var(--warn)}
-  .chip:focus-visible{outline:2px solid var(--c1);outline-offset:2px}
+  .chip .m{background:rgba(0,204,51,.12);color:var(--good)}
+  .chip .p{background:rgba(196,134,31,.14);color:var(--warn)}
+  .chip:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 
   .sla{min-width:280px}
   .sla input[type=range]{width:100%;accent-color:var(--sla);margin-top:4px}
@@ -55,14 +71,14 @@
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .seg button{font-family:var(--mono);font-size:12px;background:transparent;color:var(--ink-dim);border:0;padding:7px 14px;cursor:pointer}
   .seg button[aria-pressed=true]{background:var(--panel-2);color:var(--ink)}
-  .seg button:focus-visible{outline:2px solid var(--c1);outline-offset:-2px}
+  .seg button:focus-visible{outline:2px solid var(--green);outline-offset:-2px}
   select{font-family:var(--mono);font-size:12px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
 
   /* headline readout */
   .squeeze{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);
     border-radius:12px;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 28px}
   .squeeze .big{font-family:var(--mono);font-size:clamp(30px,6vw,46px);font-weight:650;line-height:1;
-    color:var(--c1);font-variant-numeric:tabular-nums}
+    color:var(--green);font-variant-numeric:tabular-nums}
   .squeeze .big small{font-size:.4em;color:var(--ink-dim);font-weight:500;margin-left:6px}
   .squeeze .ctx{color:var(--ink-dim);font-size:13px}
   .squeeze .ctx b{color:var(--ink);font-family:var(--mono);font-weight:600}
@@ -73,7 +89,7 @@
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
   figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 16px 12px;display:flex;flex-direction:column;gap:4px}
   figcaption{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
-  figcaption .n{font-family:var(--mono);font-size:11px;color:var(--c1);font-weight:600}
+  figcaption .n{font-family:var(--mono);font-size:11px;color:var(--green);font-weight:600}
   figcaption .t{font-size:14px;font-weight:600}
   figcaption .ax{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);margin-left:auto;letter-spacing:.03em}
   .chart{position:relative;width:100%}
@@ -89,7 +105,21 @@
   .pt.anchor{stroke:var(--ink);stroke-width:2}
   .slaline{stroke:var(--sla);stroke-width:1.5;stroke-dasharray:4 4}
   .slatext{fill:var(--sla);font-family:var(--mono);font-size:10px}
-  .feasible{fill:rgba(95,208,138,.05)}
+  .feasible{fill:rgba(0,255,65,.04)}
+
+  /* config cards */
+  .cfggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:1000px){.cfggrid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.cfggrid{grid-template-columns:1fr}}
+  .cfgcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .cfgcard h3{margin:0 0 2px;font-size:14px;font-weight:600;color:var(--white);display:flex;align-items:center;gap:8px}
+  .cfgcard .meta{color:var(--ink-dim);font-size:12px;margin-bottom:10px}
+  .cfgcard dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:0;font-size:12px}
+  .cfgcard dt{color:var(--ink-dim)}
+  .cfgcard dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .cfgcard .recipe{display:inline-block;margin-top:12px;font-size:12px;border-bottom:1px dashed var(--line);padding-bottom:2px}
+  .cfgcard .recipe:hover{border-color:var(--green)}
+  .cfgcard .none{color:var(--ink-faint);font-size:12px}
 
   /* table */
   .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
@@ -104,7 +134,7 @@
   tbody tr:hover{background:var(--panel-2)}
   .sdot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:7px;vertical-align:middle}
   .badge{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:4px}
-  .badge.m{background:rgba(95,208,138,.14);color:var(--good)} .badge.p{background:rgba(242,179,61,.14);color:var(--warn)}
+  .badge.m{background:rgba(0,204,51,.12);color:var(--good)} .badge.p{background:rgba(196,134,31,.14);color:var(--warn)}
   .hidden{display:none}
 
   footer{color:var(--ink-faint);font-size:12px;border-top:1px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:6px}
@@ -118,18 +148,23 @@
   #tip{position:fixed;pointer-events:none;z-index:50;background:var(--panel-2);border:1px solid var(--line-2);
     border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:11.5px;color:var(--ink);
     box-shadow:0 8px 30px rgba(0,0,0,.5);opacity:0;transition:opacity .1s;max-width:240px}
-  #tip .h{color:var(--c1);font-weight:600;margin-bottom:4px}
+  #tip .h{color:var(--cyan);font-weight:600;margin-bottom:4px}
   #tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--ink-dim)}
   #tip .r b{color:var(--ink);font-weight:600}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
+<div class="scanline"></div>
 <div class="app">
+  <div class="topbar">
+    <span class="logo">jvr0x<span class="blink">_</span></span>
+    <a class="back" href="https://jvr0x.github.io/">&larr; jvr0x.github.io</a>
+  </div>
   <header>
-    <div class="eyebrow">Concurrency throughput benchmark</div>
+    <div class="eyebrow">$ ./spark-bench --sweep --all-recipes</div>
     <h1>How many <span class="accent">tokens/sec</span> can one DGX Spark serve under parallel load?</h1>
-    <p class="sub">Aggregate decode throughput, per-session speed and tail latency as concurrent sessions scale — measured on real engines, projected for NVFP4. Toggle configs, set a latency budget, read the ceiling.</p>
+    <p class="sub">Aggregate decode throughput, per-session speed and tail latency as concurrent sessions scale — every number a real measured run. Toggle configs, set a latency budget, read the ceiling.</p>
     <div class="specs" id="specs"></div>
   </header>
 
@@ -148,6 +183,7 @@
         <div class="seg" role="group" aria-label="View">
           <button id="vCharts" aria-pressed="true">Charts</button>
           <button id="vTable" aria-pressed="false">Table</button>
+          <button id="vConfig" aria-pressed="false">Config</button>
         </div>
       </div>
       <div>
@@ -170,27 +206,31 @@
     <table id="table"><thead></thead><tbody></tbody></table>
   </section>
 
+  <section class="cfggrid hidden" id="configwrap"></section>
+
   <footer>
     <div class="legend">
       <span><i class="lg-solid"></i> measured (real engine run)</span>
-      <span><i class="lg-dash"></i> projected (modeled from a measured anchor)</span>
-      <span>◎ = real anchor datapoint</span>
     </div>
     <div>Hardware: NVIDIA DGX Spark · GB10 Grace Blackwell · 128 GB LPDDR5x unified @ 273 GB/s · 1 PFLOP FP4. Decode is memory-bandwidth bound; concurrency is KV-cache–capacity bound. Workload: 1024-token prompt / 256-token output, closed-loop.</div>
-    <div>Measured anchors: Llama-3.1-8B &amp; 70B FP8 / SGLang, GPT-OSS-20B MXFP4 / Ollama, DeepSeek-R1-14B FP8 — <a href="https://www.lmsys.org/blog/2025-10-13-nvidia-dgx-spark/" target="_blank" rel="noopener">LMSYS DGX Spark review, Oct 2025</a>. NVFP4 / GGUF curves are projections pending real runs — <b>not yet measured</b>.</div>
+    <div>Every series is a real run of the open <a href="https://github.com/jvr0x/dgx-spark-bench" target="_blank" rel="noopener">dgx-spark-bench</a> harness on this hardware — reproducible from the recipe linked in each config card.</div>
   </footer>
 </div>
 <div id="tip"></div>
 
 <script>
 "use strict";
-/* ---------- hardware + config model (the data contract; harness will emit this shape) ---------- */
+/* ---------- hardware + config model ---------- */
 const HW = {name:"DGX Spark",soc:"GB10 Grace Blackwell",mem_gb:128,mem_type:"LPDDR5x",bw_gbs:273,fp4_tops:1000,cores:"20-core Arm"};
 const SPEC = [["SoC","GB10 Blackwell"],["Memory","128 GB LPDDR5x"],["Bandwidth","273 GB/s"],["FP4","1 PFLOP"],["TDP","140 W"]];
 
+/* Primary data source: ../results/manifest.json -> results/*.json (schema v1.0, emitted by the
+   harness). The FALLBACK table below is only used when fetch fails (e.g. opened via file://). */
+const PALETTE = ["--c1","--c2","--c3","--c4","--c5","--c6","--c7"];
+
 // single = memory-bound single-stream tok/s ≈ MBU·BW/weights. aggMax/hn/k shape the Hill saturation curve.
 // maxN = KV-cache capacity ceiling (curve terminates there). anchors = concurrency points backed by real data.
-const CFG = [
+const FALLBACK = [
   {id:"l8-fp8-sg",  model:"Llama-3.1-8B", pb:8,  quant:"FP8",        be:"SGLang",   st:"measured", c:"--c1", wgb:8.0,  single:20.5, aggMax:406, hn:1.5, maxN:96,  base:130, anchors:[1,32], src:"LMSYS"},
   {id:"l8-nv-vllm", model:"Llama-3.1-8B", pb:8,  quant:"NVFP4",      be:"vLLM",     st:"projected",c:"--c2", wgb:4.5,  single:36.4, aggMax:800, hn:1.6, maxN:128, base:120, anchors:[]},
   {id:"l8-gguf-lcp",model:"Llama-3.1-8B", pb:8,  quant:"GGUF Q4_K_M",be:"llama.cpp",st:"projected",c:"--c3", wgb:4.9,  single:30.6, aggMax:184, hn:1.3, maxN:64,  base:155, anchors:[]},
@@ -202,7 +242,7 @@ const CFG = [
 const N_GRID = [1,2,4,8,16,24,32,48,64,96,128];
 const cssvar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-// build enumerated points per config from the param model (real runs replace this with measured points)
+// build enumerated points per config from the param model (fallback only; real runs carry measured points)
 function genPoints(cf){
   const k = Math.pow(cf.aggMax/cf.single - 1, 1/cf.hn);
   return N_GRID.filter(n=>n<=cf.maxN).map(n=>{
@@ -212,12 +252,37 @@ function genPoints(cf){
     return {n, agg, per, p50, p95:p50*1.7, p99:p50*2.4, itl:1000/per, anchor:cf.anchors.includes(n)};
   });
 }
-CFG.forEach(cf=>{cf.color=cssvar(cf.c); cf.points=genPoints(cf);});
+
+/* ---------- results loading (harness schema v1.0 -> chart config) ---------- */
+let CFG = [];  // populated by loadResults() or the fallback
+
+function seriesToCfg(s, run, idx){
+  return {
+    id: s.id, model: s.model, pb: s.params_b, quant: s.quant, be: s.backend,
+    st: s.status, wgb: s.weights_gb, src: run.id, c: PALETTE[idx % PALETTE.length],
+    config: s.config || null, recipeUrl: s.recipe_url || null,
+    points: s.points.map(p => ({
+      n: p.concurrency, agg: p.agg_tok_s, per: p.per_session_tok_s,
+      p50: p.ttft_ms.p50, p95: p.ttft_ms.p95, p99: p.ttft_ms.p99,
+      itl: p.itl_ms ? p.itl_ms.p50 : 1000 / p.per_session_tok_s,
+      anchor: !!p.anchor,
+    })),
+  };
+}
+
+async function loadResults(){
+  const manifest = await (await fetch("../results/manifest.json")).json();
+  const files = await Promise.all(manifest.files.map(async f => (await fetch(`../results/${f}`)).json()));
+  const cfgs = [];
+  files.forEach(doc => doc.series.forEach(s => cfgs.push(seriesToCfg(s, doc.run, cfgs.length))));
+  if(!cfgs.length) throw new Error("manifest yielded no series");
+  return cfgs;
+}
 
 /* ---------- state ---------- */
 const state = {
-  visible:new Set(["l8-fp8-sg","l8-nv-vllm","l8-gguf-lcp","l70-fp8-sg","l70-nv-vllm"]),
-  sla:500, view:"charts", focus:"l8-fp8-sg",
+  visible:new Set(),
+  sla:500, view:"charts", focus:null,
   sort:{key:"agg",dir:-1}
 };
 
@@ -331,7 +396,23 @@ function renderTable(){
     <td><span class="badge ${r.st==="measured"?"m":"p"}">${r.st}</span></td></tr>`).join("");
 }
 
-function renderAll(){renderSqueeze();if(state.view==="charts")renderCharts();else renderTable();}
+function renderConfig(){
+  document.getElementById("configwrap").innerHTML = visibleCfg().map(cf=>`
+    <article class="cfgcard">
+      <h3><span class="sdot" style="background:${cf.color}"></span>${cf.model}
+        <span class="badge ${cf.st==="measured"?"m":"p"}">${cf.st}</span></h3>
+      <div class="meta">${cf.quant} · ${cf.be}${cf.wgb?` · ${cf.wgb} GB weights`:""}</div>
+      ${cf.config
+        ? `<dl>${Object.entries(cf.config).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`
+        : `<p class="none">No serving config recorded for this series${cf.st==="projected"?" (projected — no engine was run)":""}.</p>`}
+      ${cf.recipeUrl?`<a class="recipe" href="${cf.recipeUrl}" target="_blank" rel="noopener">$ cat recipe.yaml &rarr;</a>`:""}
+    </article>`).join("");
+}
+
+function renderAll(){renderSqueeze();
+  if(state.view==="charts")renderCharts();
+  else if(state.view==="table")renderTable();
+  else renderConfig();}
 
 /* ---------- chrome + interactions ---------- */
 function buildSpecs(){document.getElementById("specs").innerHTML=
@@ -357,11 +438,17 @@ function wire(){
   const sla=document.getElementById("sla");
   sla.oninput=()=>{state.sla=+sla.value;document.getElementById("slaval").textContent=sla.value;renderSqueeze();if(state.view==="charts")renderCharts();};
   document.getElementById("focus").onchange=e=>{state.focus=e.target.value;if(state.view==="charts")renderCharts();};
-  const vc=document.getElementById("vCharts"),vt=document.getElementById("vTable");
-  vc.onclick=()=>{state.view="charts";vc.setAttribute("aria-pressed",true);vt.setAttribute("aria-pressed",false);
-    document.getElementById("charts").classList.remove("hidden");document.getElementById("tablewrap").classList.add("hidden");renderCharts();};
-  vt.onclick=()=>{state.view="table";vt.setAttribute("aria-pressed",true);vc.setAttribute("aria-pressed",false);
-    document.getElementById("charts").classList.add("hidden");document.getElementById("tablewrap").classList.remove("hidden");renderTable();};
+  const views={charts:["vCharts","charts",renderCharts],table:["vTable","tablewrap",renderTable],config:["vConfig","configwrap",renderConfig]};
+  Object.entries(views).forEach(([name,[btn]])=>{
+    document.getElementById(btn).onclick=()=>{
+      state.view=name;
+      Object.entries(views).forEach(([n,[b,panel,render]])=>{
+        document.getElementById(b).setAttribute("aria-pressed",n===name);
+        document.getElementById(panel).classList.toggle("hidden",n!==name);
+        if(n===name)render();
+      });
+    };
+  });
   document.querySelector("#table thead").onclick=e=>{const k=e.target.dataset.k;if(!k)return;
     state.sort = state.sort.key===k?{key:k,dir:-state.sort.dir}:{key:k,dir:-1};renderTable();};
   // tooltip
@@ -380,7 +467,22 @@ function wire(){
   addEventListener("resize",()=>{if(state.view==="charts")renderCharts();});
 }
 
-buildSpecs();buildChips();buildFocus();wire();renderAll();
+/* ---------- boot: real results first, synthetic fallback second ---------- */
+async function boot(){
+  try{
+    CFG = await loadResults();
+  }catch(err){
+    console.warn("results fetch failed, using embedded fallback model:", err);
+    CFG = FALLBACK;
+  }
+  CFG.forEach(cf=>{cf.color=cssvar(cf.c); if(!cf.points) cf.points=genPoints(cf);});
+  // default view: measured series on, projections off unless nothing is measured
+  const measured = CFG.filter(c=>c.st==="measured");
+  (measured.length?measured:CFG).forEach(c=>state.visible.add(c.id));
+  state.focus = (measured[0]||CFG[0]).id;
+  buildSpecs();buildChips();buildFocus();wire();renderAll();
+}
+boot();
 </script>
 </body>
 </html>
