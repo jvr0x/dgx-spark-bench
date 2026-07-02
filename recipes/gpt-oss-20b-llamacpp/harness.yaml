@@ -1,0 +1,57 @@
+# Harness run config for the gpt-oss-20b-llamacpp recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8216.
+#
+#   lmswitch on gpt-oss-20b-llamacpp            # wait for "Ready on port 8216"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/gpt-oss-20b-llamacpp/harness.yaml \
+#     -o ../results/gpt-oss-20b-llamacpp.json
+#   lmswitch off gpt-oss-20b-llamacpp
+
+series:
+  id: gpt-oss-20b-llamacpp
+  model: GPT-OSS-20B
+  params_b: 20
+  quant: GGUF Q4_K_XL
+  backend: llama.cpp
+  status: measured
+  weights_gb: 11.1
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/gpt-oss-20b-llamacpp
+  config:
+    checkpoint: openai/gpt-oss-20b-GGUF/gpt-oss-20b-UD-Q4_K_XL.gguf
+    runtime: llama.cpp
+    quantization: Q4_K_XL
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 65536
+    speculative: NONE (llama.cpp)
+    cuda_graphs: false
+    chunked_prefill: false
+    async_scheduling: false
+    prefix_caching: false
+
+engine:
+  base_url: http://localhost:8216
+  model: gpt-oss-20b-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 10
+  measure_s: 30
+  request_timeout_s: 300

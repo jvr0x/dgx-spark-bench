@@ -1,0 +1,164 @@
+[
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:13:19.805990582+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "run_terminal_command",
+    "toolUseId": "KnXmdn2pvhaNuQD3Zbyd723y5AT4YmxA",
+    "toolInput": {
+      "command": "find /home/jvr0x -name \"*.md\" -path \"*vault*\" 2>/dev/null | head -30; echo \"---\"; find /home/jvr0x -name \"*Mac Mini*\" -o -name \"*spark*article*\" -o -name \"*daily*driver*\" 2>/dev/null | head -20",
+      "timeout": 10000,
+      "description": "Search for the article file in vault"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:13:31.266452821+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "read_file",
+    "toolUseId": "70QBXu0fJwh3cBjua4IsBjugP5iT2uwQ",
+    "toolInput": {
+      "target_file": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:13:48.975680955+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "search_replace",
+    "toolUseId": "8M5krMha1035csyqAVkD8Iatbk5OrePG",
+    "toolInput": {
+      "file_path": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md",
+      "old_string": "## The Hook\n\n> My Mac Mini is my daily driver. The DGX Spark under my desk is my AI backend. They're connected by three things: Tailscale, Samba, and a half-baked script called lmswitch.\n>\n> Here's how the whole thing works \ud83d\udc47",
+      "new_string": "## The Hook\n\n> My Mac Mini is my daily driver. The DGX Spark under my desk is my AI backend. Everything's wired together with Samba, SSH, and a tiny script called lmswitch.\n>\n> Here's the setup \ud83d\udc47"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:14:07.536705460+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "search_replace",
+    "toolUseId": "f8GpdhsZYi3kyEGt2L8YsmDE1eVnUbHK",
+    "toolInput": {
+      "file_path": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md",
+      "old_string": "[Mac Mini] daily driver\n  \u251c\u2500\u2500 SMB mount: browse Spark's vault in Finder\n  \u251c\u2500\u2500 Tailscale SSH: passwordless remote access\n  \u2514\u2500\u2500 OpenCode: connects to Spark's llama-server over Tailscale\n\nThe glue:\n  \u2022 lmswitch \u2014 toggle models on Spark \u2192 auto-regenerates opencode.json \u2192 rsyncs to Mac\n  \u2022 Tailscale (userspace + SOCKS5) \u2014 zero-config private network\n  \u2022 Samba \u2014 file-level access from macOS\n\nTailscale runs in userspace mode (not GUI app) so it doesn't fight Mullvad VPN.\nThat means no MagicDNS \u2014 just raw 100.x IPs and a SOCKS5 proxy at localhost:1055.\n\nSpark \u2192 Mac SSH config uses ProxyCommand through the SOCKS5:\n  Host death-star\n    User dev\n    ProxyCommand /usr/bin/nc -X 5 -x localhost:1055 %h %p\n\nThe weird part? The Mac doesn't even know the Spark exists until I SSH into it.\nNo Bonjour. No mDNS. Just a 100.x IP and an ed25519 key.\nThat's the whole connection.",
+      "new_string": "[Mac Mini] daily driver\n  \u251c\u2500\u2500 SMB mount: browse Spark's vault in Finder (local LAN)\n  \u251c\u2500\u2500 SSH: connects to Spark over LAN by hostname\n  \u251c\u2500\u2500 OpenCode: points to Spark's llama-server on the LAN\n  \u2514\u2500\u2500 Config sync: opencode.json, grok config, and hermes config all come from the Spark\n\nWhen I'm away from home, I use Tailscale (userspace mode) to SSH into the Spark\nfrom my phone \u2014 or I trigger it via Hermes/Telegram. No GUI app, doesn't fight\nMullvad. Just a SOCKS5 proxy at localhost:1055 and a ProxyCommand in SSH config.\n\nThe glue:\n  \u2022 lmswitch \u2014 toggle models on Spark \u2192 auto-regenerates opencode.json \u2192 syncs to Mac\n  \u2022 Samba \u2014 file-level access from macOS\n  \u2022 Config sync \u2014 everything's glued: same opencode/grok/hermes configs pointing\n    at the Spark's hostname and port on both machines\n\nSpark \u2192 Mac SSH config (when on Tailscale, away from home):\n  Host death-star\n    User dev\n    ProxyCommand /usr/bin/nc -X 5 -x localhost:1055 %h %p"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:14:12.673389709+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "search_replace",
+    "toolUseId": "lkwGojqz71IY0OVqT99eToUkr7L1hGDb",
+    "toolInput": {
+      "file_path": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md",
+      "old_string": "3. **Optional follow-up** \u2014 why this matters (your agent knows you because it lives under your desk, not because a company collected your data)",
+      "new_string": "3. **Optional follow-up** \u2014 why this setup matters (local AI, zero cloud dependency, agent lives under my desk)"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:14:20.708209977+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "search_replace",
+    "toolUseId": "jwlRzKX7UFa0fYdFHitMFDKTqylfl3vA",
+    "toolInput": {
+      "file_path": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md",
+      "old_string": "```\nI use my Mac Mini as a dumb terminal for my DGX Spark.\n\nThe Spark runs 7 LLMs, 4 vLLM servers, and a Telegram bot.\nThe Mac mounts the Spark's vault via Samba, SSH's in for config sync,\nand lmswitch ties it all together.\n\nThree connections. Zero cloud. Zero API calls.\n\nHere's the setup \ud83d\udc47\n```",
+      "new_string": "```\nMy Mac Mini is my daily driver. Under my desk sits a DGX Spark running LLMs locally.\n\nThe Spark runs 7 LLMs, 4 vLLM servers, and a Telegram bot.\nThe Mac mounts the vault via Samba, SSH's in over LAN,\nand lmswitch ties the config sync together.\n\nNo cloud. No API calls.\n\nHere's the setup \ud83d\udc47\n```"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:14:23.406665270+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "read_file",
+    "toolUseId": "Grj1l1U704ClpIBrWLJ5IGZVN3AT7YMb",
+    "toolInput": {
+      "target_file": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:16:00.038382376+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "read_file",
+    "toolUseId": "RVDJQBrFjLXAxNnA52GwUJ61SmPg8WJn",
+    "toolInput": {
+      "target_file": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:16:14.809674227+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "search_replace",
+    "toolUseId": "3bIRVCD7xe4zQhW50mNX6XhQox9F09Dv",
+    "toolInput": {
+      "file_path": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md",
+      "old_string": "## Thread Beats\n\n1. **Main post** \u2014 hook + high-level story (Mac Mini + Spark + \"three things connect them\")\n2. **Pinned reply** \u2014 architecture diagram, how lmswitch works, the Tailscale + Mullvad gotcha, SSH config\n3. **Optional follow-up** \u2014 why this setup matters (local AI, zero cloud dependency, agent lives under my desk)",
+      "new_string": "## Thread \u2014 full post\n\n**Tweet 1 (hook)**\n\nMy Mac Mini is my daily driver. Under my desk sits a DGX Spark running LLMs locally.\n\nNo cloud. No API calls.\n\nHere's the setup \ud83d\udc47\n\n**Tweet 2**\n\nThe Spark is the brain. It runs 7 llama.cpp models (Qwen3.6, Gemma, Nemotron) plus 4 vLLM servers with NVFP4 and Blackwell tensor cores.\n\nThe Mac is the client. I SSH into the Spark by hostname over LAN, mount its vault via Samba so I can browse files in Finder, and point OpenCode at its llama-server.\n\n**Tweet 3**\n\nThe glue is a tiny script called lmswitch. I toggle models on the Spark \u2192 it auto-regenerates opencode.json \u2192 syncs the config to the Mac.\n\nSo both machines have the same opencode, grok, and hermes configs \u2014 same hostname, same port, everything's glued together.\n\n**Tweet 4**\n\nWhen I'm away from home, I still need access. So I use Tailscale in userspace mode to SSH into the Spark from my phone. Or I just hit Hermes/Telegram and tell my agents to do stuff.\n\nNo GUI app \u2014 it'd fight with Mullvad. Just a SOCKS5 proxy and a ProxyCommand in SSH config.\n\n**Tweet 5**\n\nThis matters because my AI runs on hardware I own, sitting under my desk, connected to my network. My agent knows me because it lives in my house \u2014 not because a company collected my data.\n\nPinned reply below has the full architecture + SSH config \ud83d\udd3d\n\n## Alternative Thread (shorter version)\n\n**Tweet 1 (hook)**\n\nMy Mac Mini is my daily driver. Under my desk sits a DGX Spark running LLMs locally.\n\nNo cloud. No API calls.\n\nHere's the setup \ud83d\udc47\n\n**Tweet 2**\n\nThe Spark runs 7 LLMs, 4 vLLM servers, and a Telegram bot. The Mac mounts the vault via Samba, SSH's in over LAN, and points OpenCode at the Spark's llama-server.\n\nEverything's tied together by a tiny script called lmswitch that syncs configs.\n\n**Tweet 3**\n\nAway from home? Tailscale (userspace mode, doesn't fight Mullvad) lets me SSH from my phone or trigger agents via Hermes/Telegram.\n\nMy AI runs on hardware I own. My agent knows me because it lives under my desk, not because a company collected my data."
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  },
+  {
+    "hookEventName": "pre_tool_use",
+    "sessionId": "019f232a-e4a4-74d1-8c05-d31218fba0c6",
+    "cwd": "/home/jvr0x/dev/dgx-spark-bench",
+    "workspaceRoot": "/home/jvr0x/dev/dgx-spark-bench/",
+    "timestamp": "2026-07-02T14:16:16.316706580+00:00",
+    "transcriptPath": "/home/jvr0x/.grok/sessions/%2Fhome%2Fjvr0x%2Fdev%2Fdgx-spark-bench/019f232a-e4a4-74d1-8c05-d31218fba0c6/updates.jsonl",
+    "toolName": "read_file",
+    "toolUseId": "zyCo3IZ4wuldvHWyQ0CAeHyUBaHvFQOD",
+    "toolInput": {
+      "target_file": "/home/jvr0x/vaults/universe/06_Projects/Spark Model Publishing/X Post \u2014 Mac Mini Daily Driver + Spark AI Backend.md"
+    },
+    "toolInputTruncated": false,
+    "permissionMode": "bypassPermissions"
+  }
+]

@@ -1,0 +1,17 @@
+# lmswitch BENCH PROFILE of gpt-oss-20b — GGUF via llama.cpp
+#
+# Benchmark profile for the openai/gpt-oss-20b-GGUF checkpoint (Q4_K_XL, ~11.1G).
+# Served via llama.cpp (runtime: llama). No speculative decoding available in llama.cpp,
+# so this is a "hardware truth" run by default.
+#
+# Filename id = served-model-name = "gpt-oss-20b-llamacpp".
+# Place in your lmswitch ai-models/, then:
+#   lmswitch on gpt-oss-20b-llamacpp
+
+runtime: llama
+model: "openai/gpt-oss-20b-GGUF/gpt-oss-20b-UD-Q4_K_XL.gguf"
+port: 8216
+ctx: 65536
+display_name: "GPT-OSS-20B GGUF [BENCH]"
+
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0"]
