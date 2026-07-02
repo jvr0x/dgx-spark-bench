@@ -190,6 +190,13 @@
         <div class="ctrl-label">Percentile focus (chart 4)</div>
         <select id="focus"></select>
       </div>
+      <div>
+        <div class="ctrl-label">Y scale</div>
+        <div class="seg" role="group" aria-label="Y scale">
+          <button id="yLin" aria-pressed="true">lin</button>
+          <button id="yLog" aria-pressed="false">log</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -199,7 +206,7 @@
     <figure><figcaption><span class="n">01</span><span class="t">Throughput ↔ latency frontier</span><span class="ax">x: agg tok/s · y: p95 TTFT</span></figcaption><div class="chart" id="c1"></div><p class="hint">The money chart. Each dot = one concurrency level. Down-and-right wins. Pick the rightmost dot still under your budget line.</p></figure>
     <figure><figcaption><span class="n">02</span><span class="t">Aggregate throughput vs concurrency</span><span class="ax">x: sessions (log) · y: agg tok/s</span></figcaption><div class="chart" id="c2"></div><p class="hint">Total tok/s across all sessions. The knee is where packing more sessions stops paying off — curves end at each config's KV-cache capacity ceiling.</p></figure>
     <figure><figcaption><span class="n">03</span><span class="t">Per-session throughput vs concurrency</span><span class="ax">x: sessions (log) · y: tok/s / session</span></figcaption><div class="chart" id="c3"></div><p class="hint">What one user feels. Falls as you batch more — the cost of higher aggregate throughput.</p></figure>
-    <figure><figcaption><span class="n">04</span><span class="t">TTFT tail vs concurrency</span><span class="ax">x: sessions (log) · y: TTFT ms</span></figcaption><div class="chart" id="c4"></div><p class="hint">Time-to-first-token for the focused config — p50 / p95 / p99. The tail blows up before the median does.</p></figure>
+    <figure><figcaption><span class="n">04</span><span class="t">TTFT tail vs concurrency</span><span class="ax">x: sessions (log) · y: TTFT ms</span></figcaption><div class="chart" id="c4"></div><p class="hint">Time-to-first-token at the focused percentile, all visible configs. Switch to p99 to see whose tail blows up first.</p></figure>
   </section>
 
   <section class="tablewrap hidden" id="tablewrap">
@@ -282,7 +289,7 @@ async function loadResults(){
 /* ---------- state ---------- */
 const state = {
   visible:new Set(),
-  sla:500, view:"charts", focus:null,
+  sla:500, view:"charts", focus:"p95", yscale:"lin",
   sort:{key:"agg",dir:-1}
 };
 
@@ -292,21 +299,35 @@ function niceMax(v){const p=Math.pow(10,Math.floor(log2(v)/log2(10)));const s=[1
 function ticks(max,n=5){const step=niceMax(max/n);const out=[];for(let t=0;t<=max+1e-6;t+=step)out.push(t);return out;}
 
 /* ---------- generic line chart (SVG) ---------- */
-function lineChart(host,{xs,xAcc,yAcc,xType,yLabel,xLabel,series,sla,smin}){
+function lineChart(host,{xs,xAcc,yAcc,xType,yType,yLabel,xLabel,series,sla,smin}){
   const W=520,H=340,m={l:54,r:14,t:14,b:40};
   const iw=W-m.l-m.r, ih=H-m.t-m.b;
   // domains
   let xmin,xmax;
   if(xType==="log"){xmin=log2(1);xmax=log2(128);}
   else{xmin=0;xmax=0;series.forEach(s=>s.pts.forEach(p=>{const v=xAcc(p);if(v>xmax)xmax=v;}));xmax=niceMax(xmax||1);}
-  let ymax=0;series.forEach(s=>s.pts.forEach(p=>{const v=yAcc(p);if(v>ymax)ymax=v;}));
+  let ymax=0, ymin=Infinity;
+  series.forEach(s=>s.pts.forEach(p=>{const v=yAcc(p);if(v>ymax)ymax=v;if(v>0&&v<ymin)ymin=v;}));
   if(sla)ymax=Math.max(ymax,sla);ymax=niceMax(ymax||1);
-  const ymn = smin?0:0;
   const X = xType==="log" ? v=>m.l+(log2(v)-xmin)/(xmax-xmin)*iw : v=>m.l+(v-xmin)/(xmax-xmin)*iw;
-  const Y = v=>m.t+ih-(v-ymn)/(ymax-ymn)*ih;
+  let Y,yTicks;
+  if(yType==="log"){
+    // Reason: log y keeps wildly different configs (e.g. 80ms vs 3000ms TTFT) both readable
+    const lo=Math.pow(10,Math.floor(Math.log10(ymin===Infinity?1:ymin)));
+    const l0=Math.log10(lo),l1=Math.log10(ymax);
+    Y=v=>m.t+ih-(Math.log10(Math.max(v,lo))-l0)/(l1-l0||1)*ih;
+    yTicks=[];
+    const mults=(l1-l0>2.5)?[1]:[1,2,5];
+    for(let e=Math.floor(l0);e<=Math.ceil(l1);e++)for(const mm of mults){
+      const t=mm*Math.pow(10,e);if(t>=lo&&t<=ymax*1.001)yTicks.push(t);
+    }
+  }else{
+    Y=v=>m.t+ih-v/ymax*ih;
+    yTicks=ticks(ymax);
+  }
   let g="";
   // y gridlines + ticks
-  ticks(ymax).forEach(t=>{const y=Y(t);g+=`<line class="gridline" x1="${m.l}" y1="${y.toFixed(1)}" x2="${W-m.r}" y2="${y.toFixed(1)}"/>`;
+  yTicks.forEach(t=>{const y=Y(t);g+=`<line class="gridline" x1="${m.l}" y1="${y.toFixed(1)}" x2="${W-m.r}" y2="${y.toFixed(1)}"/>`;
     g+=`<text class="tick" x="${m.l-8}" y="${(y+3).toFixed(1)}" text-anchor="end">${fmt(t)}</text>`;});
   // x ticks
   if(xType==="log"){[1,2,4,8,16,32,64,128].forEach(v=>{const x=X(v);g+=`<text class="tick" x="${x.toFixed(1)}" y="${H-m.b+16}" text-anchor="middle">${v}</text>`;});}
@@ -342,20 +363,15 @@ function ser(cf,extra){return {label:`${cf.model} · ${cf.quant}/${cf.be}`,color
 
 function renderCharts(){
   const vc=visibleCfg();
-  lineChart(c1,{series:vc.map(c=>ser(c)),xAcc:p=>p.agg,yAcc:p=>p.p95,xType:"lin",
+  const yType=state.yscale;
+  lineChart(c1,{series:vc.map(c=>ser(c)),xAcc:p=>p.agg,yAcc:p=>p.p95,xType:"lin",yType,
     xLabel:"AGGREGATE TOK/S",yLabel:"P95 TTFT (ms)",sla:state.sla});
-  lineChart(c2,{series:vc.map(c=>ser(c)),xAcc:p=>p.n,yAcc:p=>p.agg,xType:"log",
+  lineChart(c2,{series:vc.map(c=>ser(c)),xAcc:p=>p.n,yAcc:p=>p.agg,xType:"log",yType,
     xLabel:"CONCURRENT SESSIONS",yLabel:"AGG TOK/S"});
-  lineChart(c3,{series:vc.map(c=>ser(c)),xAcc:p=>p.n,yAcc:p=>p.per,xType:"log",
+  lineChart(c3,{series:vc.map(c=>ser(c)),xAcc:p=>p.n,yAcc:p=>p.per,xType:"log",yType,
     xLabel:"CONCURRENT SESSIONS",yLabel:"TOK/S / SESSION"});
-  const f=CFG.find(c=>c.id===state.focus)||vc[0];
-  const fseries = f?[
-    {label:`${f.model} p50`,color:f.color,proj:f.st==="projected",pts:f.points.map(p=>({...p,_y:p.p50})),_k:"p50"},
-    {label:`${f.model} p95`,color:f.color,proj:true,pts:f.points.map(p=>({...p,_y:p.p95})),_k:"p95"},
-    {label:`${f.model} p99`,color:f.color,proj:true,pts:f.points.map(p=>({...p,_y:p.p99})),_k:"p99"},
-  ]:[];
-  lineChart(c4,{series:fseries,xAcc:p=>p.n,yAcc:p=>p._y,xType:"log",
-    xLabel:"CONCURRENT SESSIONS — "+(f?f.quant+"/"+f.be:""),yLabel:"TTFT (ms)"});
+  lineChart(c4,{series:vc.map(c=>ser(c)),xAcc:p=>p.n,yAcc:p=>p[state.focus],xType:"log",yType,
+    xLabel:"CONCURRENT SESSIONS",yLabel:state.focus.toUpperCase()+" TTFT (ms)"});
 }
 
 function renderSqueeze(){
@@ -426,18 +442,23 @@ function buildChips(){
   document.querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{
     const id=ch.dataset.id;state.visible.has(id)?state.visible.delete(id):state.visible.add(id);
     ch.classList.toggle("off");ch.setAttribute("aria-pressed",state.visible.has(id));
-    buildFocus();renderAll();});
+    renderAll();});
 }
 function buildFocus(){
   const sel=document.getElementById("focus");
-  sel.innerHTML=visibleCfg().map(cf=>`<option value="${cf.id}">${cf.model} ${cf.quant}/${cf.be}</option>`).join("");
-  if(!state.visible.has(state.focus)&&visibleCfg()[0])state.focus=visibleCfg()[0].id;
+  sel.innerHTML=["p50","p95","p99"].map(p=>`<option value="${p}">${p} TTFT</option>`).join("");
   sel.value=state.focus;
 }
 function wire(){
   const sla=document.getElementById("sla");
   sla.oninput=()=>{state.sla=+sla.value;document.getElementById("slaval").textContent=sla.value;renderSqueeze();if(state.view==="charts")renderCharts();};
   document.getElementById("focus").onchange=e=>{state.focus=e.target.value;if(state.view==="charts")renderCharts();};
+  [["yLin","lin"],["yLog","log"]].forEach(([id,mode])=>{
+    document.getElementById(id).onclick=()=>{state.yscale=mode;
+      document.getElementById("yLin").setAttribute("aria-pressed",mode==="lin");
+      document.getElementById("yLog").setAttribute("aria-pressed",mode==="log");
+      if(state.view==="charts")renderCharts();};
+  });
   const views={charts:["vCharts","charts",renderCharts],table:["vTable","tablewrap",renderTable],config:["vConfig","configwrap",renderConfig]};
   Object.entries(views).forEach(([name,[btn]])=>{
     document.getElementById(btn).onclick=()=>{
@@ -479,7 +500,6 @@ async function boot(){
   // default view: measured series on, projections off unless nothing is measured
   const measured = CFG.filter(c=>c.st==="measured");
   (measured.length?measured:CFG).forEach(c=>state.visible.add(c.id));
-  state.focus = (measured[0]||CFG[0]).id;
   buildSpecs();buildChips();buildFocus();wire();renderAll();
 }
 boot();
