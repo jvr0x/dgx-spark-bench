@@ -13,6 +13,9 @@ __pycache__/
 # scratch results
 results/*.tmp.json
 
+# local logs
+logs/
+
 # local working docs
 PLANNING.md
 TASK.md
