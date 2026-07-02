@@ -13,7 +13,24 @@ series:
   quant: NVFP4-mixed +MTP                 # label the as-served stack: mixed-precision NVFP4 + MTP spec-decode
   backend: vLLM 0.23 (AEON)
   status: measured
-  weights_gb: 20                          # approx — refine from `docker logs` / nvidia-smi after first run
+  weights_gb: 21.9                        # measured: "Model loading took 21.93 GiB" (vLLM log)
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-nvfp4-nvidia
+  config:                                 # the load-bearing engine knobs (curated; full set in the recipe yaml)
+    checkpoint: nvidia/qwen3.6-35b-a3b-nvfp4
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    quantization: modelopt_mixed (auto)
+    attention_backend: flashinfer
+    kv_cache_dtype: fp8
+    kv_cache_memory: 32 GiB (explicit)
+    speculative: MTP, 3 tokens, triton MoE
+    max_num_seqs: 64
+    max_model_len: 32768
+    max_num_batched_tokens: 8192
+    cuda_graphs: true
+    chunked_prefill: true
+    async_scheduling: true
+    prefix_caching: "on (defeated by unique prompts)"
+    load_format: fastsafetensors
 
 engine:
   base_url: http://localhost:8214         # harness runs on the Spark -> localhost

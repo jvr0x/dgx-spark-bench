@@ -3,7 +3,16 @@
 # that would otherwise corrupt a throughput sweep are changed vs the daily-driver config:
 #
 #   max_num_seqs:            4   -> 64     don't cap concurrency below the sweep ceiling
-#   gpu_memory_utilization:  0.4 -> 0.9    solo & dedicated -> maximise KV cache = real concurrency room
+#   kv-cache-memory-bytes:   (new) 32 GiB  pin KV size EXPLICITLY. The AEON build's CUDA-graph memory
+#                                          estimator returns ~-20 GiB (negative!), which vLLM subtracts
+#                                          from the budget -> KV budget inflated by +20 GiB -> allocation
+#                                          exceeds the unified pool -> kernel OOM -> full reboot.
+#                                          CONFIRMED 3x on 2026-07-02 (util 0.85 clean box, 0.7, 0.85).
+#                                          The daily driver's util 0.4 masks the bug (inflated budget
+#                                          still fits); high util is exactly where it kills.
+#                                          32 GiB ~= 1.5M KV tokens; total ~= 22 (weights) + 32 (KV)
+#                                          + ~5 (graphs/activations) ~= 59 GiB -> ~60 GiB headroom.
+#   gpu_memory_utilization:  0.4 -> 0.5    bounds non-KV allocations only (KV comes from the byte cap)
 #   ctx:                  262144 -> 32768  256K pre-reserves huge KV/seq and would throttle batching;
 #                                          the 1024/256 workload only needs ~1.3K tokens/seq
 #
@@ -29,7 +38,7 @@ env:
   CUTE_DSL_ARCH: "sm_121a"
   PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
 
-gpu_memory_utilization: 0.9        # bench knob — solo
+gpu_memory_utilization: 0.5        # bench knob — see header; KV is sized by --kv-cache-memory-bytes
 max_num_seqs: 64                   # bench knob — >= sweep ceiling
 tool_call_parser: "qwen3_xml"
 reasoning_parser: "qwen3"
@@ -39,6 +48,8 @@ trust_remote_code: true
 enforce_eager: false               # as-served: CUDA graphs on
 
 extra_args:
+  - "--kv-cache-memory-bytes"
+  - "34359738368"                  # 32 GiB, explicit — bypasses the broken graph-mem estimator (header)
   - "--kv-cache-dtype"
   - "fp8"
   - "--max-num-batched-tokens"

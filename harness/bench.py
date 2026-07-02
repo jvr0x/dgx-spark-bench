@@ -120,10 +120,11 @@ async def stream_request(client: httpx.AsyncClient, target: EngineTarget, worklo
                          nonce: str = "") -> RequestResult:
     """Issues one streaming chat completion and records its timings and token count.
 
-    TTFT is clocked at the first chunk carrying a non-empty ``content`` delta (role-only
-    deltas are ignored). ``completion_tokens`` is read from the final usage chunk when
-    present, falling back to the streamed content-chunk count. ``nonce`` makes the prompt
-    unique per request to defeat prefix caching.
+    TTFT is clocked at the first chunk carrying a non-empty text delta — ``content``,
+    ``reasoning_content``, or ``reasoning`` (reasoning parsers route thinking tokens to the
+    latter fields; role-only deltas are ignored). ``completion_tokens`` is read from the
+    final usage chunk when present, falling back to the streamed text-chunk count.
+    ``nonce`` makes the prompt unique per request to defeat prefix caching.
     """
     body: dict[str, Any] = {
         "model": target.model,
@@ -157,7 +158,10 @@ async def stream_request(client: httpx.AsyncClient, target: EngineTarget, worklo
                 choices = chunk.get("choices") or []
                 if not choices:
                     continue
-                piece = (choices[0].get("delta") or {}).get("content") or ""
+                delta = choices[0].get("delta") or {}
+                # Reasoning parsers (e.g. vLLM's qwen3) route thinking tokens to a separate
+                # delta field; they are decode tokens all the same. Field name varies by build.
+                piece = delta.get("content") or delta.get("reasoning_content") or delta.get("reasoning") or ""
                 if piece:
                     now = time.monotonic()
                     if first is None:

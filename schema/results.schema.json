@@ -63,6 +63,12 @@
           "max_concurrency": { "type": "integer", "description": "KV-cache capacity ceiling at this workload — curve terminates here." },
           "source": { "type": "string", "description": "Provenance for measured/projected, e.g. 'LMSYS 2025-10-13' or 'this run'." },
           "color": { "type": "string", "description": "Optional hex; UI assigns from palette if absent." },
+          "config": {
+            "type": "object",
+            "description": "Serving config the series was measured with — the load-bearing engine knobs, curated (not an exhaustive flag dump). Keys free-form, values scalar.",
+            "additionalProperties": { "type": ["string", "number", "boolean"] }
+          },
+          "recipe_url": { "type": "string", "format": "uri", "description": "Link to the reproducible recipe (bench-profile yaml + harness config) for this series." },
           "points": {
             "type": "array",
             "minItems": 1,

@@ -12,3 +12,8 @@ __pycache__/
 
 # scratch results
 results/*.tmp.json
+
+# local working docs
+PLANNING.md
+TASK.md
+*.egg-info/
