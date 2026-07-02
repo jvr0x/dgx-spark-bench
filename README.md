@@ -12,7 +12,7 @@ vendor numbers — and every series links to the exact recipe that produced it.
 ## How it works
 
 ```
-lmswitch on <recipe>  ──►  harness/bench.py  ──►  results/<run>.json  ──►  web/ dashboard
+lmswitch on <recipe>  ──►  harness/bench.py  ──►  results/<run>.json  ──►  dashboard
      (serves model            (concurrency          (schema-validated,       (GitHub Pages)
       on its own port)         sweep + metrics)      pinned provenance)
 ```
@@ -59,7 +59,7 @@ harness/     backend-agnostic async load generator (Python, tests in harness/tes
 recipes/     one dir per benchmarked model: lmswitch bench-profile + harness config + README
 results/     published runs; results/manifest.json lists ONLY real measured runs
 schema/      results.schema.json — the harness ↔ dashboard data contract
-web/         the dashboard (vanilla HTML/CSS/JS, no build step)
+index.html   the dashboard (vanilla HTML/CSS/JS, no build step; GitHub Pages serves it)
 ```
 
 ## Adding a recipe
