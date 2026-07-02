@@ -1,6 +1,9 @@
 {
   "files": [
     "qwen3.6-35b-nvfp4-nvidia.json",
-    "qwen3.6-35b-nvfp4-nvidia-specoff.json"
+    "qwen3.6-35b-nvfp4-nvidia-specoff.json",
+    "qwen3.6-27b-nvfp4-nvidia-27b.json",
+    "gpt-oss-20b-llamacpp.json",
+    "gemma-4-12b-it-llamacpp.json"
   ]
 }
