@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.6-27b-nvfp4-nvidia-2026-07-02T14:36:54Z",
+    "timestamp": "2026-07-02T14:36:54Z",
+    "harness_version": "0.1.0",
+    "git_commit": "f9c91ea",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.6-27b-nvfp4-nvidia",
+      "model": "Qwen3.6-27B-NVFP4",
+      "params_b": 27,
+      "quant": "NVFP4-mixed (dense hybrid)",
+      "backend": "vLLM 0.23 (AEON)",
+      "status": "measured",
+      "weights_gb": 20.4,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-27b-nvfp4-nvidia",
+      "config": {
+        "checkpoint": "nvidia/Qwen3.6-27B-NVFP4",
+        "image": "ghcr.io/aeon-7/aeon-vllm-ultimate:latest",
+        "quantization": "modelopt_mixed (auto)",
+        "attention_backend": "flashinfer",
+        "kv_cache_dtype": "fp8",
+        "kv_cache_memory": "32 GiB (explicit)",
+        "speculative": "NONE (no MTP)",
+        "max_num_seqs": 64,
+        "max_model_len": 32768,
+        "max_num_batched_tokens": 8192,
+        "cuda_graphs": true,
+        "chunked_prefill": true,
+        "async_scheduling": false,
+        "prefix_caching": "on (defeated by unique prompts)",
+        "load_format": "fastsafetensors",
+        "vision_tower": "disabled (limit_mm_per_prompt: {image:0, video:0})"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 8.5,
+          "per_session_tok_s": 12.8,
+          "ttft_ms": {
+            "p50": 1526,
+            "p95": 1526,
+            "p99": 1526
+          },
+          "itl_ms": {
+            "p50": 78.5,
+            "p95": 79.9,
+            "p99": 80.5
+          },
+          "samples": 1
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 17.1,
+          "per_session_tok_s": 12.3,
+          "ttft_ms": {
+            "p50": 1488,
+            "p95": 1488,
+            "p99": 1488
+          },
+          "itl_ms": {
+            "p50": 81.5,
+            "p95": 82.7,
+            "p99": 83.3
+          },
+          "samples": 2
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 34.1,
+          "per_session_tok_s": 11.7,
+          "ttft_ms": {
+            "p50": 2418,
+            "p95": 2712,
+            "p99": 2712
+          },
+          "itl_ms": {
+            "p50": 84.9,
+            "p95": 85.9,
+            "p99": 86.4
+          },
+          "samples": 4
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 11.0,
+          "ttft_ms": {
+            "p50": 5444,
+            "p95": 5445,
+            "p99": 5445
+          },
+          "itl_ms": {
+            "p50": 89.8,
+            "p95": 91.1,
+            "p99": 91.8
+          },
+          "samples": 8
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 136.5,
+          "per_session_tok_s": 9.2,
+          "ttft_ms": {
+            "p50": 10095,
+            "p95": 10914,
+            "p99": 10915
+          },
+          "itl_ms": {
+            "p50": 103.1,
+            "p95": 104.8,
+            "p99": 106.4
+          },
+          "samples": 16
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0
+        }
+      ]
+    }
+  ]
+}
