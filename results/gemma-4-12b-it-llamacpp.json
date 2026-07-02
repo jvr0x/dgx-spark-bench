@@ -1,0 +1,146 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "gemma-4-12b-it-llamacpp-2026-07-02T15:09:10Z",
+    "timestamp": "2026-07-02T15:09:10Z",
+    "harness_version": "0.1.0",
+    "git_commit": "3b575ef",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    }
+  },
+  "series": [
+    {
+      "id": "gemma-4-12b-it-llamacpp",
+      "model": "Gemma-4-12B-IT",
+      "params_b": 12,
+      "quant": "GGUF Q4_K_M",
+      "backend": "llama.cpp",
+      "status": "measured",
+      "weights_gb": 6.6,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/gemma-4-12b-it-llamacpp",
+      "config": {
+        "checkpoint": "unsloth/gemma-4-12b-it-GGUF/gemma-4-12b-it-Q4_K_M.gguf",
+        "runtime": "llama.cpp",
+        "quantization": "Q4_K_M",
+        "flash_attention": true,
+        "kv_cache_dtype": "q8_0",
+        "ctx": 32768,
+        "speculative": "NONE (llama.cpp)",
+        "cuda_graphs": false,
+        "chunked_prefill": false,
+        "async_scheduling": false,
+        "prefix_caching": false
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 25.6,
+          "per_session_tok_s": 28.3,
+          "ttft_ms": {
+            "p50": 682,
+            "p95": 685,
+            "p99": 686
+          },
+          "itl_ms": {
+            "p50": 35.9,
+            "p95": 37.1,
+            "p99": 37.9
+          },
+          "samples": 6
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 51.2,
+          "per_session_tok_s": 26.9,
+          "ttft_ms": {
+            "p50": 1526,
+            "p95": 1542,
+            "p99": 1542
+          },
+          "itl_ms": {
+            "p50": 37.7,
+            "p95": 39.0,
+            "p99": 39.9
+          },
+          "samples": 12
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 19.6,
+          "ttft_ms": {
+            "p50": 3953,
+            "p95": 3968,
+            "p99": 3973
+          },
+          "itl_ms": {
+            "p50": 49.9,
+            "p95": 53.1,
+            "p99": 55.0
+          },
+          "samples": 16
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 18.6,
+          "ttft_ms": {
+            "p50": 19860,
+            "p95": 20703,
+            "p99": 20722
+          },
+          "itl_ms": {
+            "p50": 50.3,
+            "p95": 54.1,
+            "p99": 57.6
+          },
+          "samples": 16
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 64.0,
+          "per_session_tok_s": 18.8,
+          "ttft_ms": {
+            "p50": 21158,
+            "p95": 54360,
+            "p99": 54419
+          },
+          "itl_ms": {
+            "p50": 51.0,
+            "p95": 54.8,
+            "p99": 58.0
+          },
+          "samples": 15
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 51.2,
+          "per_session_tok_s": 18.5,
+          "ttft_ms": {
+            "p50": 22342,
+            "p95": 39380,
+            "p99": 39402
+          },
+          "itl_ms": {
+            "p50": 51.1,
+            "p95": 55.0,
+            "p99": 58.9
+          },
+          "samples": 12
+        }
+      ]
+    }
+  ]
+}

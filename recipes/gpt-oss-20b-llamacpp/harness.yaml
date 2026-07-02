@@ -53,5 +53,5 @@ workload:
 sweep:
   concurrencies: [1, 2, 4, 8, 16, 32]
   warmup_s: 10
-  measure_s: 30
+  measure_s: 60
   request_timeout_s: 300

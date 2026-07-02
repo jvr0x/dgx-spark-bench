@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "run": {
-    "id": "qwen3.6-27b-nvfp4-nvidia-2026-07-02T14:36:54Z",
-    "timestamp": "2026-07-02T14:36:54Z",
+    "id": "qwen3.6-27b-nvfp4-nvidia-2026-07-02T15:35:16Z",
+    "timestamp": "2026-07-02T15:35:16Z",
     "harness_version": "0.1.0",
-    "git_commit": "f9c91ea",
+    "git_commit": "3b575ef",
     "hardware": {
       "name": "DGX Spark",
       "soc": "GB10 Grace Blackwell",
@@ -51,99 +51,99 @@
       "points": [
         {
           "concurrency": 1,
-          "agg_tok_s": 8.5,
-          "per_session_tok_s": 12.8,
+          "agg_tok_s": 12.8,
+          "per_session_tok_s": 12.5,
           "ttft_ms": {
-            "p50": 1526,
-            "p95": 1526,
-            "p99": 1526
+            "p50": 765,
+            "p95": 1545,
+            "p99": 1614
           },
           "itl_ms": {
-            "p50": 78.5,
-            "p95": 79.9,
-            "p99": 80.5
+            "p50": 80.1,
+            "p95": 91.3,
+            "p99": 92.5
           },
-          "samples": 1
+          "samples": 3
         },
         {
           "concurrency": 2,
-          "agg_tok_s": 17.1,
-          "per_session_tok_s": 12.3,
+          "agg_tok_s": 25.6,
+          "per_session_tok_s": 12.0,
           "ttft_ms": {
-            "p50": 1488,
-            "p95": 1488,
-            "p99": 1488
+            "p50": 1445,
+            "p95": 1515,
+            "p99": 1516
           },
           "itl_ms": {
-            "p50": 81.5,
-            "p95": 82.7,
-            "p99": 83.3
+            "p50": 83.4,
+            "p95": 85.3,
+            "p99": 94.7
           },
-          "samples": 2
+          "samples": 6
         },
         {
           "concurrency": 4,
           "agg_tok_s": 34.1,
-          "per_session_tok_s": 11.7,
+          "per_session_tok_s": 11.4,
           "ttft_ms": {
-            "p50": 2418,
-            "p95": 2712,
-            "p99": 2712
+            "p50": 2441,
+            "p95": 2747,
+            "p99": 2747
           },
           "itl_ms": {
-            "p50": 84.9,
-            "p95": 85.9,
-            "p99": 86.4
-          },
-          "samples": 4
-        },
-        {
-          "concurrency": 8,
-          "agg_tok_s": 68.3,
-          "per_session_tok_s": 11.0,
-          "ttft_ms": {
-            "p50": 5444,
-            "p95": 5445,
-            "p99": 5445
-          },
-          "itl_ms": {
-            "p50": 89.8,
-            "p95": 91.1,
-            "p99": 91.8
+            "p50": 86.8,
+            "p95": 88.7,
+            "p99": 97.5
           },
           "samples": 8
         },
         {
-          "concurrency": 16,
-          "agg_tok_s": 136.5,
-          "per_session_tok_s": 9.2,
+          "concurrency": 8,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 10.8,
           "ttft_ms": {
-            "p50": 10095,
-            "p95": 10914,
-            "p99": 10915
+            "p50": 5420,
+            "p95": 5507,
+            "p99": 5508
           },
           "itl_ms": {
-            "p50": 103.1,
-            "p95": 104.8,
-            "p99": 106.4
+            "p50": 91.5,
+            "p95": 93.3,
+            "p99": 103.1
+          },
+          "samples": 16
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 9.2,
+          "ttft_ms": {
+            "p50": 9735,
+            "p95": 10877,
+            "p99": 10878
+          },
+          "itl_ms": {
+            "p50": 104.3,
+            "p95": 114.0,
+            "p99": 116.2
           },
           "samples": 16
         },
         {
           "concurrency": 32,
-          "agg_tok_s": 0.0,
-          "per_session_tok_s": 0.0,
+          "agg_tok_s": 136.5,
+          "per_session_tok_s": 6.5,
           "ttft_ms": {
-            "p50": 0,
-            "p95": 0,
-            "p99": 0
+            "p50": 18866,
+            "p95": 21475,
+            "p99": 21585
           },
           "itl_ms": {
-            "p50": 0.0,
-            "p95": 0.0,
-            "p99": 0.0
+            "p50": 131.3,
+            "p95": 140.0,
+            "p99": 163.2
           },
-          "samples": 0
+          "samples": 32
         }
       ]
     }

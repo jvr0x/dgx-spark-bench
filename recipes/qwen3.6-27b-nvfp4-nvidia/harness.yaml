@@ -22,7 +22,7 @@ series:
     quantization: modelopt_mixed (auto)
     attention_backend: flashinfer
     kv_cache_dtype: fp8
-    kv_cache_memory: 32 GiB (explicit)
+    kv_cache_memory: 64 GiB (explicit)
     speculative: NONE (no MTP)
     max_num_seqs: 64
     max_model_len: 32768
@@ -58,5 +58,5 @@ workload:
 sweep:
   concurrencies: [1, 2, 4, 8, 16, 32]
   warmup_s: 10
-  measure_s: 30
+  measure_s: 60
   request_timeout_s: 300

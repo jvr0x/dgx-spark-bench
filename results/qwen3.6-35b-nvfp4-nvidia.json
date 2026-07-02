@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "run": {
-    "id": "qwen3.6-35b-nvfp4-nvidia-2026-07-02T12:08:17Z",
-    "timestamp": "2026-07-02T12:08:17Z",
+    "id": "qwen3.6-35b-nvfp4-nvidia-2026-07-02T16:04:14Z",
+    "timestamp": "2026-07-02T16:04:14Z",
     "harness_version": "0.1.0",
-    "git_commit": "3fed9ea",
+    "git_commit": "3b575ef",
     "hardware": {
       "name": "DGX Spark",
       "soc": "GB10 Grace Blackwell",
@@ -29,120 +29,6 @@
       "backend": "vLLM 0.23 (AEON)",
       "status": "measured",
       "weights_gb": 21.9,
-      "points": [
-        {
-          "concurrency": 1,
-          "agg_tok_s": 102.4,
-          "per_session_tok_s": 114.1,
-          "ttft_ms": {
-            "p50": 187,
-            "p95": 189,
-            "p99": 189
-          },
-          "itl_ms": {
-            "p50": 27.0,
-            "p95": 28.6,
-            "p99": 29.5
-          },
-          "samples": 12
-        },
-        {
-          "concurrency": 2,
-          "agg_tok_s": 162.1,
-          "per_session_tok_s": 89.2,
-          "ttft_ms": {
-            "p50": 217,
-            "p95": 219,
-            "p99": 220
-          },
-          "itl_ms": {
-            "p50": 33.8,
-            "p95": 35.7,
-            "p99": 154.0
-          },
-          "samples": 19
-        },
-        {
-          "concurrency": 4,
-          "agg_tok_s": 238.9,
-          "per_session_tok_s": 67.0,
-          "ttft_ms": {
-            "p50": 357,
-            "p95": 466,
-            "p99": 474
-          },
-          "itl_ms": {
-            "p50": 42.8,
-            "p95": 46.1,
-            "p99": 161.0
-          },
-          "samples": 28
-        },
-        {
-          "concurrency": 8,
-          "agg_tok_s": 341.3,
-          "per_session_tok_s": 45.7,
-          "ttft_ms": {
-            "p50": 401,
-            "p95": 615,
-            "p99": 615
-          },
-          "itl_ms": {
-            "p50": 60.0,
-            "p95": 172.7,
-            "p99": 175.5
-          },
-          "samples": 40
-        },
-        {
-          "concurrency": 16,
-          "agg_tok_s": 418.1,
-          "per_session_tok_s": 31.9,
-          "ttft_ms": {
-            "p50": 689,
-            "p95": 1003,
-            "p99": 1518
-          },
-          "itl_ms": {
-            "p50": 83.1,
-            "p95": 197.5,
-            "p99": 302.9
-          },
-          "samples": 49
-        },
-        {
-          "concurrency": 32,
-          "agg_tok_s": 563.2,
-          "per_session_tok_s": 21.5,
-          "ttft_ms": {
-            "p50": 1512,
-            "p95": 3875,
-            "p99": 3877
-          },
-          "itl_ms": {
-            "p50": 119.7,
-            "p95": 335.2,
-            "p99": 562.1
-          },
-          "samples": 66
-        },
-        {
-          "concurrency": 64,
-          "agg_tok_s": 546.1,
-          "per_session_tok_s": 12.9,
-          "ttft_ms": {
-            "p50": 5667,
-            "p95": 7790,
-            "p99": 7852
-          },
-          "itl_ms": {
-            "p50": 190.5,
-            "p95": 628.7,
-            "p99": 1218.0
-          },
-          "samples": 64
-        }
-      ],
       "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-nvfp4-nvidia",
       "config": {
         "checkpoint": "nvidia/qwen3.6-35b-a3b-nvfp4",
@@ -160,7 +46,121 @@
         "async_scheduling": true,
         "prefix_caching": "on (defeated by unique prompts)",
         "load_format": "fastsafetensors"
-      }
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 102.4,
+          "per_session_tok_s": 109.5,
+          "ttft_ms": {
+            "p50": 191,
+            "p95": 205,
+            "p99": 206
+          },
+          "itl_ms": {
+            "p50": 28.1,
+            "p95": 29.7,
+            "p99": 30.4
+          },
+          "samples": 24
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 157.9,
+          "per_session_tok_s": 84.8,
+          "ttft_ms": {
+            "p50": 222,
+            "p95": 333,
+            "p99": 337
+          },
+          "itl_ms": {
+            "p50": 35.0,
+            "p95": 37.0,
+            "p99": 155.1
+          },
+          "samples": 37
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 230.4,
+          "per_session_tok_s": 63.1,
+          "ttft_ms": {
+            "p50": 261,
+            "p95": 376,
+            "p99": 384
+          },
+          "itl_ms": {
+            "p50": 45.2,
+            "p95": 48.6,
+            "p99": 166.3
+          },
+          "samples": 54
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 337.1,
+          "per_session_tok_s": 44.2,
+          "ttft_ms": {
+            "p50": 405,
+            "p95": 626,
+            "p99": 629
+          },
+          "itl_ms": {
+            "p50": 61.8,
+            "p95": 175.7,
+            "p99": 180.4
+          },
+          "samples": 79
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 430.9,
+          "per_session_tok_s": 30.1,
+          "ttft_ms": {
+            "p50": 582,
+            "p95": 1010,
+            "p99": 2241
+          },
+          "itl_ms": {
+            "p50": 85.1,
+            "p95": 200.9,
+            "p99": 310.0
+          },
+          "samples": 101
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 563.2,
+          "per_session_tok_s": 20.2,
+          "ttft_ms": {
+            "p50": 1317,
+            "p95": 3894,
+            "p99": 3897
+          },
+          "itl_ms": {
+            "p50": 125.9,
+            "p95": 346.4,
+            "p99": 553.2
+          },
+          "samples": 132
+        },
+        {
+          "concurrency": 64,
+          "agg_tok_s": 567.5,
+          "per_session_tok_s": 12.3,
+          "ttft_ms": {
+            "p50": 3071,
+            "p95": 7838,
+            "p99": 7845
+          },
+          "itl_ms": {
+            "p50": 196.7,
+            "p95": 634.1,
+            "p99": 1221.0
+          },
+          "samples": 133
+        }
+      ]
     }
   ]
 }

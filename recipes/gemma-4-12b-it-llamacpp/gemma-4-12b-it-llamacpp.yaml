@@ -1,0 +1,16 @@
+# lmswitch BENCH PROFILE of gemma-4-12b-it — GGUF via llama.cpp
+#
+# Benchmark profile for the unsloth/gemma-4-12b-it-GGUF checkpoint (Q4_K_M, ~6.6G).
+# Served via llama.cpp. Small model for contrast against the larger models.
+#
+# Filename id = served-model-name = "gemma-4-12b-it-llamacpp".
+# Place in your lmswitch ai-models/, then:
+#   lmswitch on gemma-4-12b-it-llamacpp
+
+runtime: llama
+model: "unsloth/gemma-4-12b-it-GGUF/gemma-4-12b-it-Q4_K_M.gguf"
+port: 8218
+ctx: 32768
+display_name: "Gemma-4-12B Instruct GGUF [BENCH]"
+
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0"]

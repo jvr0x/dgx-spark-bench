@@ -26,7 +26,7 @@ env:
   CUTE_DSL_ARCH: "sm_121a"
   PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
 
-gpu_memory_utilization: 0.5
+gpu_memory_utilization: 0.3
 max_num_seqs: 64
 load_format: "fastsafetensors"
 trust_remote_code: true
@@ -38,7 +38,7 @@ limit_mm_per_prompt: '{"image":0,"video":0}'
 
 extra_args:
   - "--kv-cache-memory-bytes"
-  - "34359738368"                  # 32 GiB — explicit KV cap (bypasses broken AEON estimator)
+  - "68719476736"                  # 64 GiB — explicit KV cap (bypasses broken AEON estimator; increased from 32GiB for N=32)
   - "--kv-cache-dtype"
   - "fp8"
   - "--max-num-batched-tokens"

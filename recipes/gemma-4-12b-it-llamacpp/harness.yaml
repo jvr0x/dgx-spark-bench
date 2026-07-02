@@ -1,0 +1,57 @@
+# Harness run config for the gemma-4-12b-it-llamacpp recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8218.
+#
+#   lmswitch on gemma-4-12b-it-llamacpp         # wait for "Ready on port 8218"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/gemma-4-12b-it-llamacpp/harness.yaml \
+#     -o ../results/gemma-4-12b-it-llamacpp.json
+#   lmswitch off gemma-4-12b-it-llamacpp
+
+series:
+  id: gemma-4-12b-it-llamacpp
+  model: Gemma-4-12B-IT
+  params_b: 12
+  quant: GGUF Q4_K_M
+  backend: llama.cpp
+  status: measured
+  weights_gb: 6.6
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/gemma-4-12b-it-llamacpp
+  config:
+    checkpoint: unsloth/gemma-4-12b-it-GGUF/gemma-4-12b-it-Q4_K_M.gguf
+    runtime: llama.cpp
+    quantization: Q4_K_M
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 32768
+    speculative: NONE (llama.cpp)
+    cuda_graphs: false
+    chunked_prefill: false
+    async_scheduling: false
+    prefix_caching: false
+
+engine:
+  base_url: http://localhost:8218
+  model: gemma-4-12b-it-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 10
+  measure_s: 60
+  request_timeout_s: 300
