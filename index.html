@@ -280,8 +280,14 @@ function seriesToCfg(s, run, idx){
 async function loadResults(){
   const manifest = await (await fetch("results/manifest.json")).json();
   const files = await Promise.all(manifest.files.map(async f => (await fetch(`results/${f}`)).json()));
-  const cfgs = [];
-  files.forEach(doc => doc.series.forEach(s => cfgs.push(seriesToCfg(s, doc.run, cfgs.length))));
+  const cfgs = [], seen = new Set();
+  files.forEach(doc => doc.series.forEach(s => {
+    const cfg = seriesToCfg(s, doc.run, cfgs.length);
+    // Reason: visibility/chips key on id — a duplicate would make two chips fight over one entry
+    while(seen.has(cfg.id)){console.warn(`duplicate series id "${cfg.id}" (run ${doc.run.id}) — suffixing`);cfg.id+="~dup";}
+    seen.add(cfg.id);
+    cfgs.push(cfg);
+  }));
   if(!cfgs.length) throw new Error("manifest yielded no series");
   return cfgs;
 }

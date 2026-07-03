@@ -8,7 +8,7 @@
 #   lmswitch off qwen3.6-35b-nvfp4-specoff
 
 series:
-  id: qwen3.6-35b-nvfp4-nvidia
+  id: qwen3.6-35b-nvfp4-specoff
   model: Qwen3.6-35B-A3B
   params_b: 35
   quant: NVFP4-mixed (spec OFF)
