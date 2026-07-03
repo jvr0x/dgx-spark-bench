@@ -370,7 +370,7 @@ function ser(cf,extra){return {label:`${cf.model} · ${cf.quant}/${cf.be}`,color
 function renderCharts(){
   const vc=visibleCfg();
   const yType=state.yscale;
-  lineChart(c1,{series:vc.map(c=>ser(c)),xAcc:p=>p.agg,yAcc:p=>p.p95,xType:"lin",yType,
+  lineChart(c1,{series:vc.map(c=>ser(c)),xAcc:p=>p.agg,yAcc:p=>p.p95,xType:"log",yType,
     xLabel:"AGGREGATE TOK/S",yLabel:"P95 TTFT (ms)",sla:state.sla});
   lineChart(c2,{series:vc.map(c=>ser(c)),xAcc:p=>p.n,yAcc:p=>p.agg,xType:"log",yType,
     xLabel:"CONCURRENT SESSIONS",yLabel:"AGG TOK/S"});
