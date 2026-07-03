@@ -1,0 +1,12 @@
+# lmswitch BENCH PROFILE of Nemotron-3-Nano-30B-A3B FP8 via vLLM (stock image).
+# util raised 0.60 -> 0.80 (daily value is a coexist profile; bench runs solo).
+runtime: vllm
+model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8"
+port: 8236
+ctx: 32768
+display_name: "Nemotron-3-Nano-30B FP8 [BENCH]"
+gpu_memory_utilization: 0.8
+max_num_seqs: 64
+tool_call_parser: "qwen3_coder"
+reasoning_parser_plugin: "nano_v3_reasoning_parser.py"
+trust_remote_code: 1

@@ -1,0 +1,15 @@
+# lmswitch BENCH PROFILE of Qwen3.6-35B-A3B — GGUF via llama.cpp.
+# quant ladder: Q4 vs the Q8 and NVFP4 runs of the same model
+# Filename id = served-model-name = "qwen3.6-35b-q4-llamacpp".
+
+runtime: llama
+model: "unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf"
+port: 8223
+# With -kvu the ctx is one shared pool: 32 streams x 1280 tok = ~40K cells < 65536.
+ctx: 65536
+display_name: "Qwen3.6-35B-A3B [BENCH]"
+
+# -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]

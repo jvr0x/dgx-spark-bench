@@ -1,0 +1,17 @@
+# lmswitch BENCH PROFILE of DeepSeek-V4-Flash-Mini — GGUF via llama.cpp.
+# REAP-pruned 162B-class MoE at Q2; needs the deepseek llama.cpp fork
+# Filename id = served-model-name = "deepseek-v4-flash-mini-q2-llamacpp".
+
+runtime: llama
+model: "0xSero/DeepSeek-V4-Flash-162B-GGUF/DeepSeek-V4-Flash-Spark-Mini-Q2-REAP-ds4.gguf"
+llama_bin: "/home/jvr0x/utils/llama.cpp-deepseek-v4-flash/build/bin/llama-server"
+port: 8226
+# With -kvu the ctx is one shared pool: 32 streams x 1280 tok = ~40K cells < 65536.
+ctx: 65536
+display_name: "DeepSeek-V4-Flash-Mini [BENCH]"
+
+# -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+# Fork build: if -kvu/-np are unsupported by this branch, boot fails -> flag and skip.
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]

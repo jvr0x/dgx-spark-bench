@@ -1,0 +1,55 @@
+# Harness run config for the gemma-4-26b-a4b-bf16 recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8234.
+#
+#   lmswitch on gemma-4-26b-a4b-bf16       # wait for "Ready on port 8234"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/gemma-4-26b-a4b-bf16/harness.yaml \
+#     -o ../results/gemma-4-26b-a4b-bf16.json
+#   lmswitch off gemma-4-26b-a4b-bf16
+
+series:
+  id: gemma-4-26b-a4b-bf16
+  model: Gemma-4-26B-A4B-IT
+  params_b: 26
+  quant: BF16
+  backend: vLLM 0.23
+  status: measured
+  weights_gb: 49
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/gemma-4-26b-a4b-bf16
+  config:
+    checkpoint: google/gemma-4-26B-A4B-it
+    runtime: vLLM
+    quantization: BF16
+    flash_attention: true
+    kv_cache_dtype: auto
+    ctx: 32768
+    max_num_seqs: 64
+    speculative: NONE
+    note: "MoE Gemma unquantized on vLLM"
+
+engine:
+  base_url: http://localhost:8234
+  model: gemma-4-26b-a4b-bf16
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

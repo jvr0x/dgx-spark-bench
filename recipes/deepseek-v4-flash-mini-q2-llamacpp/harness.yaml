@@ -1,0 +1,56 @@
+# Harness run config for the deepseek-v4-flash-mini-q2-llamacpp recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8226.
+#
+#   lmswitch on deepseek-v4-flash-mini-q2-llamacpp       # wait for "Ready on port 8226"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/deepseek-v4-flash-mini-q2-llamacpp/harness.yaml \
+#     -o ../results/deepseek-v4-flash-mini-q2-llamacpp.json
+#   lmswitch off deepseek-v4-flash-mini-q2-llamacpp
+
+series:
+  id: deepseek-v4-flash-mini-q2-llamacpp
+  model: DeepSeek-V4-Flash-Mini
+  params_b: 162
+  quant: GGUF Q2 REAP-Mini
+  backend: llama.cpp
+  status: measured
+  weights_gb: 49
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/deepseek-v4-flash-mini-q2-llamacpp
+  config:
+    checkpoint: 0xSero/DeepSeek-V4-Flash-162B-GGUF/DeepSeek-V4-Flash-Spark-Mini-Q2-REAP-ds4.gguf
+    runtime: llama.cpp
+    quantization: Q2 REAP-Mini
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 65536
+    parallel: 32
+    kv_unified: true
+    speculative: NONE (llama.cpp)
+    note: "REAP-pruned 162B-class MoE at Q2; needs the deepseek llama.cpp fork"
+
+engine:
+  base_url: http://localhost:8226
+  model: deepseek-v4-flash-mini-q2-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

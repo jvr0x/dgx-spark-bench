@@ -1,0 +1,38 @@
+# lmswitch BENCH PROFILE of qwen3.6-35b-heretic-dflash-aeon7 (AEON image + DFlash n=6).
+# Bench deltas vs daily: ctx 262144 -> 32768, util 0.8 -> 0.5 with
+# --kv-cache-memory-bytes pinned to 32 GiB (broken AEON graph-mem estimator —
+# see qwen3.6-35b-nvfp4-bench header; confirmed kernel-OOM 3x on 2026-07-02).
+# max_num_seqs already 64. NO --kv-cache-dtype: DFlash drafter needs BF16 KV.
+runtime: vllm
+model: "AEON-7/Qwen3.6-35B-A3B-heretic-NVFP4"
+port: 8240
+ctx: 32768
+display_name: "Qwen3.6-35B heretic +DFlash [BENCH]"
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+entrypoint: "vllm serve"
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  ENABLE_NVFP4_SM100: "0"
+  NVIDIA_FORWARD_COMPAT: "1"
+  VLLM_TEST_FORCE_FP8_MARLIN: "1"
+  VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+gpu_memory_utilization: 0.5
+max_num_seqs: 64
+enforce_eager: false
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+trust_remote_code: true
+attention_backend: "flash_attn"
+limit_mm_per_prompt: '{"image":4,"video":2}'
+extra_args:
+  - "--kv-cache-memory-bytes"
+  - "34359738368"
+  - "--quantization"
+  - "compressed-tensors"
+  - "--max-num-batched-tokens"
+  - "32768"
+  - "--enable-chunked-prefill"
+  - "--enable-prefix-caching"
+  - "--speculative-config"
+  - '{"method":"dflash","model":"AEON-7/AEON-DFlash-Qwen3.6-35B-A3B","num_speculative_tokens":6}'

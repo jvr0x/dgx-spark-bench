@@ -1,0 +1,14 @@
+# lmswitch BENCH PROFILE of Qwen-AgentWorld-35B-A3B — UNQUANTIZED bf16 via vLLM.
+# The quant-free baseline for the 35B-A3B family. Solo config (0.85 util per the
+# daily profile's own comment). --language-model-only and --max-num-batched-tokens
+# >= 2096 are REQUIRED (see daily profile for the full explanation).
+runtime: vllm
+model: "Qwen-AgentWorld-35B-A3B"
+port: 8233
+ctx: 32768
+display_name: "Qwen-AgentWorld-35B bf16 [BENCH]"
+gpu_memory_utilization: 0.85
+max_num_seqs: 64
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+extra_args: ["--language-model-only", "--max-num-batched-tokens", "4096", "--enable-prefix-caching", "--kv-cache-dtype", "fp8"]

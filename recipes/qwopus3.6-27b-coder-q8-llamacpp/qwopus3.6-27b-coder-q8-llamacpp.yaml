@@ -1,0 +1,16 @@
+# lmswitch BENCH PROFILE of Qwopus3.6-27B-Coder — GGUF via llama.cpp.
+# dense 27B Q8 data point (MTP head unused by llama.cpp)
+# Filename id = served-model-name = "qwopus3.6-27b-coder-q8-llamacpp".
+
+runtime: llama
+model: "Jackrong/Qwopus3.6-27B-Coder-MTP-GGUF/Qwopus3.6-27B-Coder-MTP-Q8_0.gguf"
+mmproj: "Jackrong/Qwopus3.6-27B-Coder-MTP-GGUF/mmproj-F32.gguf"
+port: 8230
+# With -kvu the ctx is one shared pool: 32 streams x 1280 tok = ~40K cells < 65536.
+ctx: 65536
+display_name: "Qwopus3.6-27B-Coder [BENCH]"
+
+# -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]

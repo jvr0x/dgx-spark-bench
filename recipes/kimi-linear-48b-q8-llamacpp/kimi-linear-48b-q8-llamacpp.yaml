@@ -1,0 +1,16 @@
+# lmswitch BENCH PROFILE of Kimi-Linear-48B-A3B — GGUF via llama.cpp.
+# hybrid linear-attention arch; recurrent-state cache, KV pressure profile differs
+# Filename id = served-model-name = "kimi-linear-48b-q8-llamacpp".
+
+runtime: llama
+model: "bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q8_0/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q8_0-00001-of-00002.gguf"
+port: 8224
+# With -kvu the ctx is one shared pool: 32 streams x 1280 tok = ~40K cells < 65536.
+ctx: 65536
+display_name: "Kimi-Linear-48B-A3B [BENCH]"
+
+# -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+# Hybrid linear-attention model: if -kvu trips the recurrent cache on boot, drop it.
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]

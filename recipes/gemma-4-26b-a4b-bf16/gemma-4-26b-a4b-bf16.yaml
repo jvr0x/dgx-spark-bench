@@ -1,0 +1,8 @@
+# lmswitch BENCH PROFILE of gemma-4-26B-A4B-it — bf16 via vLLM (stock image).
+runtime: vllm
+model: "google/gemma-4-26B-A4B-it"
+port: 8234
+ctx: 32768
+display_name: "Gemma-4-26B-A4B bf16 [BENCH]"
+gpu_memory_utilization: 0.85
+max_num_seqs: 64

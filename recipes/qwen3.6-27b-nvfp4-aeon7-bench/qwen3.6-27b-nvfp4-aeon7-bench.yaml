@@ -1,0 +1,37 @@
+# lmswitch BENCH PROFILE of qwen3.6-27b-nvfp4-aeon7 (AEON image + DFlash n=10).
+# Bench deltas vs daily: max_num_seqs 16 -> 64, ctx 262144 -> 32768, util 0.85 -> 0.5,
+# and --kv-cache-memory-bytes pinned to 32 GiB. The AEON build's CUDA-graph memory
+# estimator is broken (returns negative) and can kernel-OOM the whole box at high
+# util — confirmed 3x on 2026-07-02 on the 35B sibling. The byte pin bypasses it.
+# NO --kv-cache-dtype: the DFlash drafter needs BF16 KV (per model README).
+runtime: vllm
+model: "AEON-7/Qwen3.6-27B-AEON-Ultimate-Uncensored-NVFP4"
+port: 8238
+ctx: 32768
+display_name: "Qwen3.6-27B AEON NVFP4 +DFlash [BENCH]"
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+entrypoint: "vllm serve"
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+gpu_memory_utilization: 0.5
+max_num_seqs: 64
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+trust_remote_code: true
+attention_backend: "flash_attn"
+enforce_eager: false
+extra_args:
+  - "--kv-cache-memory-bytes"
+  - "34359738368"
+  - "--quantization"
+  - "compressed-tensors"
+  - "--mamba-cache-dtype"
+  - "float32"
+  - "--max-num-batched-tokens"
+  - "16384"
+  - "--enable-chunked-prefill"
+  - "--enable-prefix-caching"
+  - "--speculative-config"
+  - '{"method":"dflash","model":"z-lab/Qwen3.6-27B-DFlash","num_speculative_tokens":10}'

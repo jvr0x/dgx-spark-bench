@@ -1,0 +1,9 @@
+# lmswitch BENCH PROFILE of Gemma-4-31B-IT NVFP4 — dense 31B via vLLM (stock image).
+# Daily profile runs ctx 8192 (reason not recorded); kept — the 1024/256 workload fits.
+runtime: vllm
+model: "nvidia/Gemma-4-31B-IT-NVFP4"
+port: 8235
+ctx: 8192
+display_name: "Gemma-4-31B NVFP4 [BENCH]"
+gpu_memory_utilization: 0.8
+max_num_seqs: 64

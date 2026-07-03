@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "run": {
-    "id": "qwen3.6-35b-q8-llamacpp-2026-07-03T12:00:05Z",
-    "timestamp": "2026-07-03T12:00:05Z",
+    "id": "qwen3.6-35b-q8-llamacpp-2026-07-03T17:07:54Z",
+    "timestamp": "2026-07-03T17:07:54Z",
     "harness_version": "0.1.0",
-    "git_commit": "d57e1e3",
+    "git_commit": "e421a3d",
     "hardware": {
       "name": "DGX Spark",
       "soc": "GB10 Grace Blackwell",
@@ -18,6 +18,19 @@
       "prompt_tokens": 1024,
       "output_tokens": 256,
       "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
     }
   },
   "series": [
@@ -49,99 +62,99 @@
       "points": [
         {
           "concurrency": 1,
-          "agg_tok_s": 51.2,
-          "per_session_tok_s": 54.9,
+          "agg_tok_s": 44.1,
+          "per_session_tok_s": 48.5,
           "ttft_ms": {
-            "p50": 502,
-            "p95": 506,
-            "p99": 507
+            "p50": 514,
+            "p95": 524,
+            "p99": 526
           },
           "itl_ms": {
-            "p50": 18.2,
-            "p95": 19.1,
-            "p99": 19.5
+            "p50": 20.7,
+            "p95": 21.9,
+            "p99": 22.4
           },
-          "samples": 12
+          "samples": 31
         },
         {
           "concurrency": 2,
-          "agg_tok_s": 68.3,
-          "per_session_tok_s": 40.2,
+          "agg_tok_s": 65.4,
+          "per_session_tok_s": 37.6,
           "ttft_ms": {
-            "p50": 980,
-            "p95": 1044,
-            "p99": 1045
+            "p50": 1080,
+            "p95": 1129,
+            "p99": 1166
           },
           "itl_ms": {
-            "p50": 25.1,
-            "p95": 26.3,
-            "p99": 27.0
+            "p50": 26.8,
+            "p95": 28.0,
+            "p99": 28.7
           },
-          "samples": 16
+          "samples": 46
         },
         {
           "concurrency": 4,
-          "agg_tok_s": 85.3,
-          "per_session_tok_s": 24.8,
+          "agg_tok_s": 79.6,
+          "per_session_tok_s": 23.4,
           "ttft_ms": {
-            "p50": 1457,
-            "p95": 2003,
-            "p99": 2004
+            "p50": 1324,
+            "p95": 1935,
+            "p99": 1977
           },
           "itl_ms": {
-            "p50": 38.2,
-            "p95": 40.3,
-            "p99": 41.8
+            "p50": 39.5,
+            "p95": 42.1,
+            "p99": 67.4
           },
-          "samples": 20
+          "samples": 56
         },
         {
           "concurrency": 8,
           "agg_tok_s": 102.4,
-          "per_session_tok_s": 14.7,
+          "per_session_tok_s": 14.3,
           "ttft_ms": {
-            "p50": 2377,
-            "p95": 3731,
-            "p99": 3799
+            "p50": 2657,
+            "p95": 4055,
+            "p99": 4698
           },
           "itl_ms": {
-            "p50": 60.0,
-            "p95": 65.7,
-            "p99": 427.6
+            "p50": 61.9,
+            "p95": 67.4,
+            "p99": 360.9
           },
-          "samples": 24
+          "samples": 72
         },
         {
           "concurrency": 16,
-          "agg_tok_s": 98.1,
-          "per_session_tok_s": 8.3,
+          "agg_tok_s": 113.8,
+          "per_session_tok_s": 7.8,
           "ttft_ms": {
-            "p50": 4009,
-            "p95": 7952,
-            "p99": 8043
+            "p50": 3553,
+            "p95": 8413,
+            "p99": 9834
           },
           "itl_ms": {
-            "p50": 100.4,
-            "p95": 108.2,
-            "p99": 950.1
+            "p50": 103.1,
+            "p95": 114.2,
+            "p99": 846.2
           },
-          "samples": 23
+          "samples": 80
         },
         {
           "concurrency": 32,
-          "agg_tok_s": 85.3,
-          "per_session_tok_s": 4.7,
+          "agg_tok_s": 119.5,
+          "per_session_tok_s": 4.2,
           "ttft_ms": {
-            "p50": 8155,
-            "p95": 13843,
-            "p99": 13845
+            "p50": 5382,
+            "p95": 19945,
+            "p99": 21305
           },
           "itl_ms": {
-            "p50": 160.6,
-            "p95": 794.1,
-            "p99": 1067.2
+            "p50": 167.5,
+            "p95": 876.7,
+            "p99": 1274.8
           },
-          "samples": 20
+          "samples": 84
         }
       ]
     }

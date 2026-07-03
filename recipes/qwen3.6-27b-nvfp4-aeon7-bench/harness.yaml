@@ -1,0 +1,55 @@
+# Harness run config for the qwen3.6-27b-nvfp4-aeon7-bench recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8238.
+#
+#   lmswitch on qwen3.6-27b-nvfp4-aeon7-bench       # wait for "Ready on port 8238"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/qwen3.6-27b-nvfp4-aeon7-bench/harness.yaml \
+#     -o ../results/qwen3.6-27b-nvfp4-aeon7-bench.json
+#   lmswitch off qwen3.6-27b-nvfp4-aeon7-bench
+
+series:
+  id: qwen3.6-27b-nvfp4-aeon7-bench
+  model: Qwen3.6-27B-AEON
+  params_b: 27
+  quant: NVFP4-mixed (compressed-tensors)
+  backend: vLLM 0.23
+  status: measured
+  weights_gb: 26
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-27b-nvfp4-aeon7-bench
+  config:
+    checkpoint: AEON-7/Qwen3.6-27B-AEON-Ultimate-Uncensored-NVFP4
+    runtime: vLLM
+    quantization: NVFP4-mixed (compressed-tensors)
+    flash_attention: true
+    kv_cache_dtype: bf16 (DFlash requires)
+    ctx: 32768
+    max_num_seqs: 64
+    speculative: DFlash, 10 tokens, drafter=z-lab/Qwen3.6-27B-DFlash
+    note: "A/B vs qwen3.6-27b-nvfp4-nvidia: AEON image + DFlash n=10"
+
+engine:
+  base_url: http://localhost:8238
+  model: qwen3.6-27b-nvfp4-aeon7-bench
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

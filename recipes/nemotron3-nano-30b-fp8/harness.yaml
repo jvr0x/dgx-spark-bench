@@ -1,0 +1,55 @@
+# Harness run config for the nemotron3-nano-30b-fp8 recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8236.
+#
+#   lmswitch on nemotron3-nano-30b-fp8       # wait for "Ready on port 8236"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/nemotron3-nano-30b-fp8/harness.yaml \
+#     -o ../results/nemotron3-nano-30b-fp8.json
+#   lmswitch off nemotron3-nano-30b-fp8
+
+series:
+  id: nemotron3-nano-30b-fp8
+  model: Nemotron-3-Nano-30B-A3B
+  params_b: 30
+  quant: FP8
+  backend: vLLM 0.23
+  status: measured
+  weights_gb: 31
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/nemotron3-nano-30b-fp8
+  config:
+    checkpoint: nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8
+    runtime: vLLM
+    quantization: FP8
+    flash_attention: true
+    kv_cache_dtype: auto
+    ctx: 32768
+    max_num_seqs: 64
+    speculative: NONE
+    note: "cross-backend pair with the Q8 llama.cpp run of the same model"
+
+engine:
+  base_url: http://localhost:8236
+  model: nemotron3-nano-30b-fp8
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

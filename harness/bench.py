@@ -270,6 +270,7 @@ async def run_sweep(cfg: dict[str, Any], timestamp: str) -> dict[str, Any]:
             "git_commit": _git_commit(),
             "hardware": cfg["hardware"],
             "workload": {**cfg["workload"], "mode": "closed_loop"},
+            "sweep": cfg["sweep"],
         },
         "series": [{**series_meta, "points": points}],
     }

@@ -41,6 +41,16 @@
             "mode": { "type": "string", "enum": ["closed_loop", "open_loop"] },
             "arrival_rate_rps": { "type": "number", "description": "Only for open_loop." }
           }
+        },
+        "sweep": {
+          "type": "object",
+          "description": "Sweep timing used for this run, so windows are comparable across results.",
+          "properties": {
+            "concurrencies": { "type": "array", "items": { "type": "integer" } },
+            "warmup_s": { "type": "number" },
+            "measure_s": { "type": "number" },
+            "request_timeout_s": { "type": "number" }
+          }
         }
       }
     },

@@ -1,0 +1,16 @@
+# lmswitch BENCH PROFILE of Nemotron-3-Nano-30B-A3B — GGUF via llama.cpp.
+# cross-backend pair with the FP8 vLLM run of the same model
+# Filename id = served-model-name = "nemotron3-nano-30b-q8-llamacpp".
+
+runtime: llama
+model: "nemotron3-gguf/Nemotron-3-Nano-30B-A3B-UD-Q8_K_XL.gguf"
+port: 8229
+# With -kvu the ctx is one shared pool: 32 streams x 1280 tok = ~40K cells < 65536.
+ctx: 65536
+display_name: "Nemotron-3-Nano-30B-A3B [BENCH]"
+
+# -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+# Hybrid mamba arch: if -kvu trips the recurrent cache on boot, drop it.
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]

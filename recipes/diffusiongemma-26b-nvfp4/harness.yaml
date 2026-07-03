@@ -1,0 +1,55 @@
+# Harness run config for the diffusiongemma-26b-nvfp4 recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8241.
+#
+#   lmswitch on diffusiongemma-26b-nvfp4       # wait for "Ready on port 8241"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/diffusiongemma-26b-nvfp4/harness.yaml \
+#     -o ../results/diffusiongemma-26b-nvfp4.json
+#   lmswitch off diffusiongemma-26b-nvfp4
+
+series:
+  id: diffusiongemma-26b-nvfp4
+  model: DiffusionGemma-26B-A4B
+  params_b: 26
+  quant: NVFP4
+  backend: vLLM 0.23
+  status: measured
+  weights_gb: 18
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/diffusiongemma-26b-nvfp4
+  config:
+    checkpoint: nvidia/diffusiongemma-26B-A4B-it-NVFP4
+    runtime: vLLM
+    quantization: NVFP4
+    flash_attention: true
+    kv_cache_dtype: auto
+    ctx: 32768
+    max_num_seqs: 4
+    speculative: NONE
+    note: "EXPERIMENTAL diffusion LM — flagged, run supervised"
+
+engine:
+  base_url: http://localhost:8241
+  model: diffusiongemma-26b-nvfp4
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

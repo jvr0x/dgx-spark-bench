@@ -1,0 +1,56 @@
+# Harness run config for the nex-n2-pro-iq1m-llamacpp recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8228.
+#
+#   lmswitch on nex-n2-pro-iq1m-llamacpp       # wait for "Ready on port 8228"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/nex-n2-pro-iq1m-llamacpp/harness.yaml \
+#     -o ../results/nex-n2-pro-iq1m-llamacpp.json
+#   lmswitch off nex-n2-pro-iq1m-llamacpp
+
+series:
+  id: nex-n2-pro-iq1m-llamacpp
+  model: Nex-N2-Pro-397B-A17B
+  params_b: 397
+  quant: GGUF IQ1_M
+  backend: llama.cpp
+  status: measured
+  weights_gb: 91
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/nex-n2-pro-iq1m-llamacpp
+  config:
+    checkpoint: Nex-N2-Pro-IQ1_M/IQ1_M/Nex-397B-A17B-IQ1_M-00001-of-00005.gguf
+    runtime: llama.cpp
+    quantization: IQ1_M
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 32768
+    parallel: 8
+    kv_unified: true
+    speculative: NONE (llama.cpp)
+    note: "397B-A17B at IQ1_M, 91G — tightest fit on the box (~9G headroom). FLAGGED: OOM risk, run supervised"
+
+engine:
+  base_url: http://localhost:8228
+  model: nex-n2-pro-iq1m-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

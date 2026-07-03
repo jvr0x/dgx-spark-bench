@@ -1,0 +1,16 @@
+# lmswitch BENCH PROFILE of Qwen3-Coder-Next-80B-A3B — GGUF via llama.cpp.
+# 80B-A3B hybrid (gated delta net) — biggest MoE class benched on llama.cpp so far
+# Filename id = served-model-name = "qwen3-coder-next-q4-llamacpp".
+
+runtime: llama
+model: "unsloth/Qwen3-Coder-Next-GGUF/Qwen3-Coder-Next-UD-Q4_K_XL.gguf"
+port: 8225
+# With -kvu the ctx is one shared pool: 32 streams x 1280 tok = ~40K cells < 65536.
+ctx: 65536
+display_name: "Qwen3-Coder-Next-80B-A3B [BENCH]"
+
+# -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+# Hybrid arch (gated delta net): if -kvu trips the recurrent cache on boot, drop it.
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]

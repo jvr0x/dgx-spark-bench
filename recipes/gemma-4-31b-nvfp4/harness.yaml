@@ -1,0 +1,55 @@
+# Harness run config for the gemma-4-31b-nvfp4 recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8235.
+#
+#   lmswitch on gemma-4-31b-nvfp4       # wait for "Ready on port 8235"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/gemma-4-31b-nvfp4/harness.yaml \
+#     -o ../results/gemma-4-31b-nvfp4.json
+#   lmswitch off gemma-4-31b-nvfp4
+
+series:
+  id: gemma-4-31b-nvfp4
+  model: Gemma-4-31B-IT
+  params_b: 31
+  quant: NVFP4
+  backend: vLLM 0.23
+  status: measured
+  weights_gb: 31
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/gemma-4-31b-nvfp4
+  config:
+    checkpoint: nvidia/Gemma-4-31B-IT-NVFP4
+    runtime: vLLM
+    quantization: NVFP4
+    flash_attention: true
+    kv_cache_dtype: auto
+    ctx: 8192
+    max_num_seqs: 64
+    speculative: NONE
+    note: "dense 31B NVFP4 on vLLM"
+
+engine:
+  base_url: http://localhost:8235
+  model: gemma-4-31b-nvfp4
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

@@ -1,0 +1,56 @@
+# Harness run config for the kimi-linear-48b-q8-llamacpp recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8224.
+#
+#   lmswitch on kimi-linear-48b-q8-llamacpp       # wait for "Ready on port 8224"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/kimi-linear-48b-q8-llamacpp/harness.yaml \
+#     -o ../results/kimi-linear-48b-q8-llamacpp.json
+#   lmswitch off kimi-linear-48b-q8-llamacpp
+
+series:
+  id: kimi-linear-48b-q8-llamacpp
+  model: Kimi-Linear-48B-A3B
+  params_b: 48
+  quant: GGUF Q8_0
+  backend: llama.cpp
+  status: measured
+  weights_gb: 49
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/kimi-linear-48b-q8-llamacpp
+  config:
+    checkpoint: bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q8_0/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q8_0-00001-of-00002.gguf
+    runtime: llama.cpp
+    quantization: Q8_0
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 65536
+    parallel: 32
+    kv_unified: true
+    speculative: NONE (llama.cpp)
+    note: "hybrid linear-attention arch; recurrent-state cache, KV pressure profile differs"
+
+engine:
+  base_url: http://localhost:8224
+  model: kimi-linear-48b-q8-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

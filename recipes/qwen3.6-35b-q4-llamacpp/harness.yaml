@@ -1,0 +1,56 @@
+# Harness run config for the qwen3.6-35b-q4-llamacpp recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8223.
+#
+#   lmswitch on qwen3.6-35b-q4-llamacpp       # wait for "Ready on port 8223"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/qwen3.6-35b-q4-llamacpp/harness.yaml \
+#     -o ../results/qwen3.6-35b-q4-llamacpp.json
+#   lmswitch off qwen3.6-35b-q4-llamacpp
+
+series:
+  id: qwen3.6-35b-q4-llamacpp
+  model: Qwen3.6-35B-A3B
+  params_b: 35
+  quant: GGUF Q4_K_XL
+  backend: llama.cpp
+  status: measured
+  weights_gb: 21
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-q4-llamacpp
+  config:
+    checkpoint: unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+    runtime: llama.cpp
+    quantization: Q4_K_XL
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 65536
+    parallel: 32
+    kv_unified: true
+    speculative: NONE (llama.cpp)
+    note: "quant ladder: Q4 vs the Q8 and NVFP4 runs of the same model"
+
+engine:
+  base_url: http://localhost:8223
+  model: qwen3.6-35b-q4-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

@@ -1,0 +1,18 @@
+# lmswitch BENCH PROFILE of diffusiongemma-26B NVFP4 — EXPERIMENTAL, run supervised.
+# Diffusion LM: token-streaming semantics differ from AR models; the harness's
+# TTFT/ITL numbers may be meaningless. Daily profile's util 0.22 / seqs 4 kept
+# (reason for those values not recorded — do not raise unattended).
+runtime: vllm
+model: "nvidia/diffusiongemma-26B-A4B-it-NVFP4"
+port: 8241
+ctx: 32768
+display_name: "DiffusionGemma-26B NVFP4 [BENCH]"
+image: "vllm/vllm-openai:gemma-aarch64-cu130"
+gpu_memory_utilization: 0.22
+max_num_seqs: "4"
+tool_call_parser: "gemma4"
+reasoning_parser: "gemma4"
+trust_remote_code: 1
+no_chat_template: 1
+attention_backend: "TRITON_ATTN"
+load_format: "auto"

@@ -1,0 +1,13 @@
+# lmswitch BENCH PROFILE of Nemotron-3-Nano-Omni-30B NVFP4 via vLLM (stock image).
+# util raised 0.55 -> 0.80 (coexist -> solo); daily profile's duplicate runtime key fixed.
+runtime: vllm
+model: "nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4"
+port: 8237
+ctx: 32768
+display_name: "Nemotron-3-Nano Omni NVFP4 [BENCH]"
+gpu_memory_utilization: 0.8
+max_num_seqs: 64
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "nemotron_v3"
+trust_remote_code: 1
+limit_mm_per_prompt: '{"video":1,"image":1,"audio":1}'

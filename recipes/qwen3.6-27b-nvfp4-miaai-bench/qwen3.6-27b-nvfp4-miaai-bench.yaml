@@ -1,0 +1,30 @@
+# lmswitch BENCH PROFILE of qwen3.6-27b-nvfp4-miaai (MiaAI-Lab repo config, stock
+# nightly image). Bench deltas vs the faithful daily port: max_num_seqs 4 -> 64
+# (their coexist value would cap the sweep — the exact artifact this bench chases),
+# util 0.4 -> 0.7, ctx 262144 -> 32768. Everything else kept verbatim.
+# KNOWN RISK: stock nightly may be too old to load qwen3_5_moe on sm_121a (the
+# daily profile documents this) — if it fails to load, flag and skip.
+runtime: vllm
+model: "nvidia/Qwen3.6-27B-NVFP4"
+port: 8239
+ctx: 32768
+display_name: "Qwen3.6-27B NVFP4 MiaAI [BENCH]"
+image: "vllm/vllm-openai:nightly"
+gpu_memory_utilization: 0.7
+max_num_seqs: 64
+attention_backend: "flashinfer"
+load_format: "fastsafetensors"
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+trust_remote_code: true
+enforce_eager: false
+extra_args:
+  - "--moe-backend"
+  - "marlin"
+  - "--max-num-batched-tokens"
+  - "8192"
+  - "--enable-chunked-prefill"
+  - "--async-scheduling"
+  - "--enable-prefix-caching"
+  - "--speculative-config"
+  - '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}'
