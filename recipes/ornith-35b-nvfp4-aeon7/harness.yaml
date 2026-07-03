@@ -1,0 +1,61 @@
+# Harness run config for the ornith-35b-nvfp4-aeon7 recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8220.
+#
+#   lmswitch on ornith-35b-nvfp4-aeon7      # wait for "Ready on port 8220"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/ornith-35b-nvfp4-aeon7/harness.yaml \
+#     -o ../results/ornith-35b-nvfp4-aeon7.json
+#   lmswitch off ornith-35b-nvfp4-aeon7
+
+series:
+  id: ornith-35b-nvfp4-aeon7
+  model: Ornith-1.0-35B-AEON
+  params_b: 35
+  quant: NVFP4-mixed (compressed-tensors)
+  backend: vLLM 0.23 (AEON)
+  status: measured
+  weights_gb: 22.1
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/ornith-35b-nvfp4-aeon7
+  config:
+    checkpoint: AEON-7/Ornith-1.0-35B-AEON-Ultimate-Uncensored-NVFP4
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    quantization: compressed-tensors (nvfp4-pack)
+    attention_backend: flash_attn
+    kv_cache_dtype: bf16 (vision tower)
+    kv_cache_memory: 32 GiB (explicit)
+    speculative: DFlash, 6 tokens, drafter=AEON-7/AEON-DFlash-Qwen3.6-35B-A3B
+    max_num_seqs: 64
+    max_model_len: 32768
+    max_num_batched_tokens: 8192
+    cuda_graphs: true
+    chunked_prefill: true
+    async_scheduling: false
+    prefix_caching: "on (defeated by unique prompts)"
+    architecture: "hybrid (GatedDeltaNet SSM + full attention)"
+
+engine:
+  base_url: http://localhost:8220
+  model: ornith-35b-nvfp4-aeon7
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32, 64]
+  warmup_s: 10
+  measure_s: 60
+  request_timeout_s: 300

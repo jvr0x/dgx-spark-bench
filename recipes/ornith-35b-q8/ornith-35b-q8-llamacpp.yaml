@@ -1,18 +1,18 @@
-# lmswitch BENCH PROFILE of gemma-4-12b-it — GGUF via llama.cpp
+# lmswitch BENCH PROFILE of Ornith-1.0-35B Q8 — GGUF via llama.cpp.
 #
-# Benchmark profile for the unsloth/gemma-4-12b-it-GGUF checkpoint (Q4_K_M, ~6.6G).
-# Served via llama.cpp. Small model for contrast against the larger models.
+# Benchmark profile for ornith/Ornith-1.0-35B-Q8_0 (Q8_0, ~34.4G).
+# Served via llama.cpp. Same model as the NVFP4 version — quantization comparison.
 #
-# Filename id = served-model-name = "gemma-4-12b-it-llamacpp".
+# Filename id = served-model-name = "ornith-35b-q8-llamacpp".
 # Place in your lmswitch ai-models/, then:
-#   lmswitch on gemma-4-12b-it-llamacpp
+#   lmswitch on ornith-35b-q8-llamacpp
 
 runtime: llama
-model: "unsloth/gemma-4-12b-it-GGUF/gemma-4-12b-it-Q4_K_M.gguf"
-port: 8218
+model: "ornith/Ornith-1.0-35B-Q8_0/ornith-1.0-35b-Q8_0.gguf"
+port: 8221
 # With -kvu the ctx is one shared pool: 32 streams x 1280 tok = ~41K cells < 65536.
 ctx: 65536
-display_name: "Gemma-4-12B Instruct GGUF [BENCH]"
+display_name: "Ornith-1.0-35B Q8 [BENCH]"
 
 # -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
 # -kvu: unified KV buffer; explicit -np disables it, and split mode measured

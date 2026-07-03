@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "step-3.7-flash-llamacpp-2026-07-03T12:48:22Z",
+    "timestamp": "2026-07-03T12:48:22Z",
+    "harness_version": "0.1.0",
+    "git_commit": "d57e1e3",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    }
+  },
+  "series": [
+    {
+      "id": "step-3.7-flash-llamacpp",
+      "model": "Step-3.7-Flash",
+      "params_b": 88,
+      "quant": "GGUF IQ4_XS",
+      "backend": "llama.cpp",
+      "status": "measured",
+      "weights_gb": 88.8,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/step-3.7-flash-llamacpp",
+      "config": {
+        "checkpoint": "unsloth/Step-3.7-Flash-GGUF/UD-IQ4_XS/Step-3.7-Flash-UD-IQ4_XS-00001-of-00003.gguf",
+        "runtime": "llama.cpp",
+        "quantization": "IQ4_XS",
+        "flash_attention": true,
+        "kv_cache_dtype": "q8_0",
+        "ctx": 32768,
+        "parallel": 8,
+        "kv_unified": true,
+        "speculative": "NONE (llama.cpp)",
+        "cuda_graphs": false,
+        "chunked_prefill": false,
+        "async_scheduling": false,
+        "prefix_caching": false,
+        "note": "barely fits \u2014 88.8G weights in 128GB pool"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 17.1,
+          "per_session_tok_s": 19.9,
+          "ttft_ms": {
+            "p50": 1448,
+            "p95": 1976,
+            "p99": 2050
+          },
+          "itl_ms": {
+            "p50": 49.9,
+            "p95": 53.4,
+            "p99": 61.7
+          },
+          "samples": 4
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 25.6,
+          "per_session_tok_s": 15.7,
+          "ttft_ms": {
+            "p50": 3112,
+            "p95": 3172,
+            "p99": 3181
+          },
+          "itl_ms": {
+            "p50": 63.8,
+            "p95": 68.0,
+            "p99": 76.1
+          },
+          "samples": 6
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 34.1,
+          "per_session_tok_s": 10.6,
+          "ttft_ms": {
+            "p50": 5149,
+            "p95": 5813,
+            "p99": 6069
+          },
+          "itl_ms": {
+            "p50": 88.7,
+            "p95": 93.7,
+            "p99": 218.4
+          },
+          "samples": 8
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 34.1,
+          "per_session_tok_s": 6.7,
+          "ttft_ms": {
+            "p50": 9575,
+            "p95": 11600,
+            "p99": 11641
+          },
+          "itl_ms": {
+            "p50": 137.8,
+            "p95": 157.8,
+            "p99": 429.8
+          },
+          "samples": 8
+        }
+      ]
+    }
+  ]
+}

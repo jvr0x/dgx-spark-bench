@@ -1,0 +1,60 @@
+# Harness run config for the step-3.7-flash-llamacpp recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8219.
+#
+#   lmswitch on step-3.7-flash-llamacpp       # wait for "Ready on port 8219"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/step-3.7-flash-llamacpp/harness.yaml \
+#     -o ../results/step-3.7-flash-llamacpp.json
+#   lmswitch off step-3.7-flash-llamacpp
+
+series:
+  id: step-3.7-flash-llamacpp
+  model: Step-3.7-Flash
+  params_b: 88
+  quant: GGUF IQ4_XS
+  backend: llama.cpp
+  status: measured
+  weights_gb: 88.8
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/step-3.7-flash-llamacpp
+  config:
+    checkpoint: unsloth/Step-3.7-Flash-GGUF/UD-IQ4_XS/Step-3.7-Flash-UD-IQ4_XS-00001-of-00003.gguf
+    runtime: llama.cpp
+    quantization: IQ4_XS
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 32768
+    parallel: 8
+    kv_unified: true
+    speculative: NONE (llama.cpp)
+    cuda_graphs: false
+    chunked_prefill: false
+    async_scheduling: false
+    prefix_caching: false
+    note: "barely fits — 88.8G weights in 128GB pool"
+
+engine:
+  base_url: http://localhost:8219
+  model: step-3.7-flash-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8]
+  warmup_s: 10
+  measure_s: 60
+  request_timeout_s: 300

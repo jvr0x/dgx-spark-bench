@@ -1,0 +1,53 @@
+# lmswitch BENCH PROFILE of Ornith-1.0-35B-AEON NVFP4 — hybrid Mamba/Attention.
+#
+# Benchmark profile for AEON-7/Ornith-1.0-35B-AEON-Ultimate-Uncensored-NVFP4.
+# Hybrid architecture (GatedDeltaNet SSM + full attention), NVFP4 via
+# compressed-tensors. Served via vLLM/AEON with DFlash spec-decode (n=6).
+#
+# Differences from daily-driver:
+#   gpu_memory_utilization: 0.60 -> 0.5   (kv-cache explicit, bounds non-KV)
+#   max_num_seqs:            16 -> 64      (don't cap below sweep ceiling)
+#   ctx:                    262144 -> 32768 (workload only needs ~1.3K)
+#   kv-cache-dtype: BF16 (vision tower forces it; cannot use fp8)
+#
+# Filename id = served-model-name = "ornith-35b-nvfp4-aeon7".
+# Place in your lmswitch ai-models/, then:
+#   lmswitch on ornith-35b-nvfp4-aeon7
+
+runtime: vllm
+model: "AEON-7/Ornith-1.0-35B-AEON-Ultimate-Uncensored-NVFP4"
+port: 8220
+ctx: 32768
+display_name: "Ornith-1.0-35B NVFP4 (AEON) [BENCH]"
+
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+entrypoint: "vllm serve"
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  VLLM_USE_FLASHINFER_SAMPLER: "1"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+
+gpu_memory_utilization: 0.5
+max_num_seqs: 64
+enforce_eager: false
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+trust_remote_code: true
+attention_backend: "flash_attn"
+
+extra_args:
+  - "--kv-cache-memory-bytes"
+  - "34359738368"                  # 32 GiB — explicit KV cap
+  - "--kv-cache-dtype"
+  - "bfloat16"                       # vision tower forces BF16 KV
+  - "--quantization"
+  - "compressed-tensors"
+  - "--mamba-cache-dtype"
+  - "float32"
+  - "--max-num-batched-tokens"
+  - "8192"
+  - "--enable-chunked-prefill"
+  - "--enable-prefix-caching"
+  - "--speculative-config"
+  - '{"method":"dflash","model":"AEON-7/AEON-DFlash-Qwen3.6-35B-A3B","num_speculative_tokens":6}'

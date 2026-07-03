@@ -1,0 +1,60 @@
+# Harness run config for the ornith-35b-q8 recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8221.
+#
+#   lmswitch on ornith-35b-q8-llamacpp      # wait for "Ready on port 8221"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/ornith-35b-q8/harness.yaml \
+#     -o ../results/ornith-35b-q8-llamacpp.json
+#   lmswitch off ornith-35b-q8-llamacpp
+
+series:
+  id: ornith-35b-q8-llamacpp
+  model: Ornith-1.0-35B
+  params_b: 35
+  quant: GGUF Q8_0
+  backend: llama.cpp
+  status: measured
+  weights_gb: 34.4
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/ornith-35b-q8
+  config:
+    checkpoint: ornith/Ornith-1.0-35B-Q8_0/ornith-1.0-35b-Q8_0.gguf
+    runtime: llama.cpp
+    quantization: Q8_0
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 65536
+    parallel: 32
+    kv_unified: true
+    speculative: NONE (llama.cpp)
+    cuda_graphs: false
+    chunked_prefill: false
+    async_scheduling: false
+    prefix_caching: false
+    note: "same model as ornith-35b-nvfp4-aeon7 but Q8 quant for comparison"
+
+engine:
+  base_url: http://localhost:8221
+  model: ornith-35b-q8-llamacpp
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 10
+  measure_s: 60
+  request_timeout_s: 300

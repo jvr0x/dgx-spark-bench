@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "run": {
-    "id": "gemma-4-12b-it-llamacpp-2026-07-02T15:09:10Z",
-    "timestamp": "2026-07-02T15:09:10Z",
+    "id": "gemma-4-12b-it-llamacpp-2026-07-03T12:14:10Z",
+    "timestamp": "2026-07-03T12:14:10Z",
     "harness_version": "0.1.0",
-    "git_commit": "3b575ef",
+    "git_commit": "d57e1e3",
     "hardware": {
       "name": "DGX Spark",
       "soc": "GB10 Grace Blackwell",
@@ -36,7 +36,9 @@
         "quantization": "Q4_K_M",
         "flash_attention": true,
         "kv_cache_dtype": "q8_0",
-        "ctx": 32768,
+        "ctx": 65536,
+        "parallel": 32,
+        "kv_unified": true,
         "speculative": "NONE (llama.cpp)",
         "cuda_graphs": false,
         "chunked_prefill": false,
@@ -47,98 +49,98 @@
         {
           "concurrency": 1,
           "agg_tok_s": 25.6,
-          "per_session_tok_s": 28.3,
+          "per_session_tok_s": 26.6,
           "ttft_ms": {
-            "p50": 682,
-            "p95": 685,
-            "p99": 686
+            "p50": 699,
+            "p95": 701,
+            "p99": 702
           },
           "itl_ms": {
-            "p50": 35.9,
-            "p95": 37.1,
-            "p99": 37.9
+            "p50": 38.1,
+            "p95": 39.0,
+            "p99": 39.8
           },
           "samples": 6
         },
         {
           "concurrency": 2,
           "agg_tok_s": 51.2,
-          "per_session_tok_s": 26.9,
+          "per_session_tok_s": 25.2,
           "ttft_ms": {
-            "p50": 1526,
-            "p95": 1542,
-            "p99": 1542
+            "p50": 1558,
+            "p95": 1574,
+            "p99": 1574
           },
           "itl_ms": {
-            "p50": 37.7,
-            "p95": 39.0,
-            "p99": 39.9
+            "p50": 40.2,
+            "p95": 41.2,
+            "p99": 42.6
           },
           "samples": 12
         },
         {
           "concurrency": 4,
           "agg_tok_s": 68.3,
-          "per_session_tok_s": 19.6,
+          "per_session_tok_s": 18.9,
           "ttft_ms": {
-            "p50": 3953,
-            "p95": 3968,
-            "p99": 3973
+            "p50": 3103,
+            "p95": 3958,
+            "p99": 3958
           },
           "itl_ms": {
-            "p50": 49.9,
-            "p95": 53.1,
-            "p99": 55.0
+            "p50": 52.7,
+            "p95": 55.9,
+            "p99": 57.3
           },
           "samples": 16
         },
         {
           "concurrency": 8,
           "agg_tok_s": 68.3,
-          "per_session_tok_s": 18.6,
+          "per_session_tok_s": 11.3,
           "ttft_ms": {
-            "p50": 19860,
-            "p95": 20703,
-            "p99": 20722
+            "p50": 5222,
+            "p95": 7893,
+            "p99": 7993
           },
           "itl_ms": {
-            "p50": 50.3,
-            "p95": 54.1,
-            "p99": 57.6
+            "p50": 84.9,
+            "p95": 89.6,
+            "p99": 178.4
           },
           "samples": 16
         },
         {
           "concurrency": 16,
-          "agg_tok_s": 64.0,
-          "per_session_tok_s": 18.8,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 7.0,
           "ttft_ms": {
-            "p50": 21158,
-            "p95": 54360,
-            "p99": 54419
+            "p50": 12611,
+            "p95": 14284,
+            "p99": 14349
           },
           "itl_ms": {
-            "p50": 51.0,
-            "p95": 54.8,
-            "p99": 58.0
+            "p50": 117.9,
+            "p95": 127.2,
+            "p99": 1369.4
           },
-          "samples": 15
+          "samples": 16
         },
         {
           "concurrency": 32,
-          "agg_tok_s": 51.2,
-          "per_session_tok_s": 18.5,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
           "ttft_ms": {
-            "p50": 22342,
-            "p95": 39380,
-            "p99": 39402
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
           },
           "itl_ms": {
-            "p50": 51.1,
-            "p95": 55.0,
-            "p99": 58.9
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
           },
-          "samples": 12
+          "samples": 0
         }
       ]
     }

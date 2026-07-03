@@ -23,6 +23,8 @@ series:
     flash_attention: true
     kv_cache_dtype: q8_0
     ctx: 65536
+    parallel: 32
+    kv_unified: true
     speculative: NONE (llama.cpp)
     cuda_graphs: false
     chunked_prefill: false

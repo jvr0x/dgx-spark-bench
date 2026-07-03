@@ -1,0 +1,25 @@
+# lmswitch BENCH PROFILE of step-3.7-flash — GGUF via llama.cpp
+#
+# Benchmark profile for unsloth/Step-3.7-Flash (IQ4_XS, ~88.8G).
+# Served via llama.cpp. This is a "barely fits" experiment — 88.8G in
+# 128GB unified pool leaves ~30-40GB for KV cache, OS, and overhead.
+#
+# Filename id = served-model-name = "step-3.7-flash-llamacpp".
+# Place in your lmswitch ai-models/, then:
+#   lmswitch on step-3.7-flash-llamacpp
+
+runtime: llama
+model: "unsloth/Step-3.7-Flash-GGUF/UD-IQ4_XS/Step-3.7-Flash-UD-IQ4_XS-00001-of-00003.gguf"
+port: 8219
+# ctx stays 32768: sweep ceiling is 8, so the unified pool only needs
+# 8 streams x 1280 tok = ~10K cells — and this model has no RAM to spare.
+ctx: 32768
+display_name: "Step-3.7-Flash GGUF [BENCH]"
+# Reason: RAM guard wants weights*1.3 (~115Gi) but at 32k ctx with q8 KV the
+# real footprint is ~92Gi — fits in 107Gi free. Skip the guard for this model.
+force: true
+
+# -np 8: slots >= sweep ceiling (8) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "8", "-kvu"]
