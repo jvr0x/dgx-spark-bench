@@ -193,8 +193,8 @@
       <div>
         <div class="ctrl-label">Y scale</div>
         <div class="seg" role="group" aria-label="Y scale">
-          <button id="yLin" aria-pressed="true">lin</button>
-          <button id="yLog" aria-pressed="false">log</button>
+          <button id="yLin" aria-pressed="false">lin</button>
+          <button id="yLog" aria-pressed="true">log</button>
         </div>
       </div>
     </div>
@@ -295,7 +295,7 @@ async function loadResults(){
 /* ---------- state ---------- */
 const state = {
   visible:new Set(),
-  sla:500, view:"charts", focus:"p95", yscale:"lin",
+  sla:500, view:"charts", focus:"p95", yscale:"log",
   sort:{key:"agg",dir:-1}
 };
 
