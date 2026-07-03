@@ -21,7 +21,7 @@ series:
     runtime: llama.cpp
     quantization: Q8_0
     flash_attention: true
-    kv_cache_dtype: q8_0
+    kv_cache_dtype: "K q8_0 / V f16 (V head dim 72 not divisible by q8_0 block 32)"
     ctx: 65536
     parallel: 32
     kv_unified: true

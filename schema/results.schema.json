@@ -103,7 +103,8 @@
                   "properties": { "p50": { "type": "number" }, "p95": { "type": "number" }, "p99": { "type": "number" } }
                 },
                 "anchor": { "type": "boolean", "description": "True if this exact point is backed by a real measurement (vs interpolated/projected)." },
-                "samples": { "type": "integer", "description": "Number of completed requests aggregated into this point." }
+                "samples": { "type": "integer", "description": "Number of completed requests aggregated into this point." },
+                "_failures": { "type": "integer", "description": "Requests that errored at this point (diagnostic; healthy runs omit it)." }
               }
             }
           }

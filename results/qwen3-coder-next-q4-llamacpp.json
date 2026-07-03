@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3-coder-next-q4-llamacpp-2026-07-03T21:03:36Z",
+    "timestamp": "2026-07-03T21:03:36Z",
+    "harness_version": "0.1.0",
+    "git_commit": "61e7320",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3-coder-next-q4-llamacpp",
+      "model": "Qwen3-Coder-Next-80B-A3B",
+      "params_b": 80,
+      "quant": "GGUF Q4_K_XL",
+      "backend": "llama.cpp",
+      "status": "measured",
+      "weights_gb": 47,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3-coder-next-q4-llamacpp",
+      "config": {
+        "checkpoint": "unsloth/Qwen3-Coder-Next-GGUF/Qwen3-Coder-Next-UD-Q4_K_XL.gguf",
+        "runtime": "llama.cpp",
+        "quantization": "Q4_K_XL",
+        "flash_attention": true,
+        "kv_cache_dtype": "q8_0",
+        "ctx": 65536,
+        "parallel": 32,
+        "kv_unified": true,
+        "speculative": "NONE (llama.cpp)",
+        "note": "80B-A3B hybrid (gated delta net) \u2014 biggest MoE class benched on llama.cpp so far"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 39.8,
+          "per_session_tok_s": 43.9,
+          "ttft_ms": {
+            "p50": 605,
+            "p95": 626,
+            "p99": 632
+          },
+          "itl_ms": {
+            "p50": 22.7,
+            "p95": 23.5,
+            "p99": 45.2
+          },
+          "samples": 28
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 59.7,
+          "per_session_tok_s": 35.3,
+          "ttft_ms": {
+            "p50": 1266,
+            "p95": 1322,
+            "p99": 1324
+          },
+          "itl_ms": {
+            "p50": 28.5,
+            "p95": 29.8,
+            "p99": 57.6
+          },
+          "samples": 42
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 78.2,
+          "per_session_tok_s": 23.8,
+          "ttft_ms": {
+            "p50": 2375,
+            "p95": 2890,
+            "p99": 2962
+          },
+          "itl_ms": {
+            "p50": 41.1,
+            "p95": 43.9,
+            "p99": 82.3
+          },
+          "samples": 55
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 91.0,
+          "per_session_tok_s": 12.8,
+          "ttft_ms": {
+            "p50": 2725,
+            "p95": 3770,
+            "p99": 4469
+          },
+          "itl_ms": {
+            "p50": 67.4,
+            "p95": 74.4,
+            "p99": 724.8
+          },
+          "samples": 64
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 98.1,
+          "per_session_tok_s": 6.8,
+          "ttft_ms": {
+            "p50": 3797,
+            "p95": 10340,
+            "p99": 11653
+          },
+          "itl_ms": {
+            "p50": 115.7,
+            "p95": 232.2,
+            "p99": 1185.3
+          },
+          "samples": 69
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 91.0,
+          "per_session_tok_s": 3.6,
+          "ttft_ms": {
+            "p50": 7503,
+            "p95": 24580,
+            "p99": 25155
+          },
+          "itl_ms": {
+            "p50": 197.0,
+            "p95": 1050.6,
+            "p99": 1466.2
+          },
+          "samples": 64
+        }
+      ]
+    }
+  ]
+}

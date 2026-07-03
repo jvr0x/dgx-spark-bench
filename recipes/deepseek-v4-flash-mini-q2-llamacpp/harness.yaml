@@ -24,7 +24,7 @@ series:
     kv_cache_dtype: q8_0
     ctx: 65536
     parallel: 32
-    kv_unified: true
+    kv_unified: false
     speculative: NONE (llama.cpp)
     note: "REAP-pruned 162B-class MoE at Q2; needs the deepseek llama.cpp fork"
 

@@ -13,5 +13,9 @@ display_name: "DeepSeek-V4-Flash-Mini [BENCH]"
 # -np 32: slots >= sweep ceiling (32) — don't cap concurrency below the sweep.
 # -kvu: unified KV buffer; explicit -np disables it, and split mode measured
 # ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
-# Fork build: if -kvu/-np are unsupported by this branch, boot fails -> flag and skip.
-extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]
+# SKIPPED 2026-07-03: fork segfaults in llama_context::graph_compute on decode
+# BOTH with -kvu and without (crashes at warmup, before any request). Works as a
+# daily driver (ctx 131072, default 4 slots, no -np) — the bench shape (-np 32,
+# ctx 65536) is what kills it. Needs supervised bisection (-np 16? default slots?)
+# or a fork rebase before this recipe can run.
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32"]

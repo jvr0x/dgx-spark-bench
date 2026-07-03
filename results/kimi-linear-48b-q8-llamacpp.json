@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "kimi-linear-48b-q8-llamacpp-2026-07-03T20:39:52Z",
+    "timestamp": "2026-07-03T20:39:52Z",
+    "harness_version": "0.1.0",
+    "git_commit": "61e7320",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "kimi-linear-48b-q8-llamacpp",
+      "model": "Kimi-Linear-48B-A3B",
+      "params_b": 48,
+      "quant": "GGUF Q8_0",
+      "backend": "llama.cpp",
+      "status": "measured",
+      "weights_gb": 49,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/kimi-linear-48b-q8-llamacpp",
+      "config": {
+        "checkpoint": "bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q8_0/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q8_0-00001-of-00002.gguf",
+        "runtime": "llama.cpp",
+        "quantization": "Q8_0",
+        "flash_attention": true,
+        "kv_cache_dtype": "K q8_0 / V f16 (V head dim 72 not divisible by q8_0 block 32)",
+        "ctx": 65536,
+        "parallel": 32,
+        "kv_unified": true,
+        "speculative": "NONE (llama.cpp)",
+        "note": "hybrid linear-attention arch; recurrent-state cache, KV pressure profile differs"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 44.1,
+          "per_session_tok_s": 47.5,
+          "ttft_ms": {
+            "p50": 400,
+            "p95": 404,
+            "p99": 407
+          },
+          "itl_ms": {
+            "p50": 21.1,
+            "p95": 21.7,
+            "p99": 23.5
+          },
+          "samples": 31
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 65.4,
+          "per_session_tok_s": 35.2,
+          "ttft_ms": {
+            "p50": 746,
+            "p95": 784,
+            "p99": 787
+          },
+          "itl_ms": {
+            "p50": 28.8,
+            "p95": 29.7,
+            "p99": 31.7
+          },
+          "samples": 46
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 79.6,
+          "per_session_tok_s": 21.6,
+          "ttft_ms": {
+            "p50": 708,
+            "p95": 1200,
+            "p99": 1232
+          },
+          "itl_ms": {
+            "p50": 44.2,
+            "p95": 46.8,
+            "p99": 236.8
+          },
+          "samples": 56
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 91.0,
+          "per_session_tok_s": 12.3,
+          "ttft_ms": {
+            "p50": 1758,
+            "p95": 2518,
+            "p99": 2782
+          },
+          "itl_ms": {
+            "p50": 75.6,
+            "p95": 81.2,
+            "p99": 374.3
+          },
+          "samples": 64
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 113.8,
+          "per_session_tok_s": 7.5,
+          "ttft_ms": {
+            "p50": 3057,
+            "p95": 6651,
+            "p99": 6933
+          },
+          "itl_ms": {
+            "p50": 115.8,
+            "p95": 128.2,
+            "p99": 762.7
+          },
+          "samples": 80
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 112.4,
+          "per_session_tok_s": 4.0,
+          "ttft_ms": {
+            "p50": 3997,
+            "p95": 16895,
+            "p99": 17816
+          },
+          "itl_ms": {
+            "p50": 192.1,
+            "p95": 888.4,
+            "p99": 1141.4
+          },
+          "samples": 79
+        }
+      ]
+    }
+  ]
+}

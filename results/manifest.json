@@ -9,6 +9,10 @@
     "ornith-35b-nvfp4-aeon7.json",
     "ornith-35b-q8-llamacpp.json",
     "qwen3.6-35b-q8-llamacpp.json",
-    "qwen3.6-35b-q4-llamacpp.json"
+    "qwen3.6-35b-q4-llamacpp.json",
+    "kimi-linear-48b-q8-llamacpp.json",
+    "qwen3-coder-next-q4-llamacpp.json",
+    "nemotron3-nano-30b-q8-llamacpp.json",
+    "qwopus3.6-27b-coder-q8-llamacpp.json"
   ]
 }

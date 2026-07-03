@@ -13,4 +13,4 @@ display_name: "Kimi-Linear-48B-A3B [BENCH]"
 # -kvu: unified KV buffer; explicit -np disables it, and split mode measured
 # ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
 # Hybrid linear-attention model: if -kvu trips the recurrent cache on boot, drop it.
-extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "32", "-kvu"]
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "f16", "-np", "32", "-kvu"]
