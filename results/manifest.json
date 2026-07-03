@@ -8,6 +8,7 @@
     "step-3.7-flash-llamacpp.json",
     "ornith-35b-nvfp4-aeon7.json",
     "ornith-35b-q8-llamacpp.json",
-    "qwen3.6-35b-q8-llamacpp.json"
+    "qwen3.6-35b-q8-llamacpp.json",
+    "qwen3.6-35b-q4-llamacpp.json"
   ]
 }
