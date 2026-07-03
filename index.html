@@ -309,8 +309,19 @@ function lineChart(host,{xs,xAcc,yAcc,xType,yType,yLabel,xLabel,series,sla,smin}
   const W=520,H=340,m={l:54,r:14,t:14,b:40};
   const iw=W-m.l-m.r, ih=H-m.t-m.b;
   // domains
-  let xmin,xmax;
-  if(xType==="log"){xmin=log2(1);xmax=log2(128);}
+  let xmin,xmax,xTickVals;
+  if(xType==="log"){
+    // Reason: domain must come from the data — chart 01 puts agg tok/s (up to ~800) on x;
+    // a hardcoded [1,128] session domain pushed its points past the plot edge onto the next chart
+    let lo=Infinity,hi=0;
+    series.forEach(s=>s.pts.forEach(p=>{const v=xAcc(p);if(v>0){if(v<lo)lo=v;if(v>hi)hi=v;}}));
+    if(!isFinite(lo)){lo=1;hi=128;}
+    xmin=Math.floor(log2(lo));xmax=Math.ceil(log2(hi));
+    if(xmax<=xmin)xmax=xmin+1;
+    xTickVals=[];for(let e=xmin;e<=xmax;e++)xTickVals.push(Math.pow(2,e));
+    const stride=Math.ceil(xTickVals.length/9);
+    if(stride>1)xTickVals=xTickVals.filter((_,i)=>i%stride===0);
+  }
   else{xmin=0;xmax=0;series.forEach(s=>s.pts.forEach(p=>{const v=xAcc(p);if(v>xmax)xmax=v;}));xmax=niceMax(xmax||1);}
   let ymax=0, ymin=Infinity;
   series.forEach(s=>s.pts.forEach(p=>{const v=yAcc(p);if(v>ymax)ymax=v;if(v>0&&v<ymin)ymin=v;}));
@@ -336,7 +347,7 @@ function lineChart(host,{xs,xAcc,yAcc,xType,yType,yLabel,xLabel,series,sla,smin}
   yTicks.forEach(t=>{const y=Y(t);g+=`<line class="gridline" x1="${m.l}" y1="${y.toFixed(1)}" x2="${W-m.r}" y2="${y.toFixed(1)}"/>`;
     g+=`<text class="tick" x="${m.l-8}" y="${(y+3).toFixed(1)}" text-anchor="end">${fmt(t)}</text>`;});
   // x ticks
-  if(xType==="log"){[1,2,4,8,16,32,64,128].forEach(v=>{const x=X(v);g+=`<text class="tick" x="${x.toFixed(1)}" y="${H-m.b+16}" text-anchor="middle">${v}</text>`;});}
+  if(xType==="log"){xTickVals.forEach(v=>{const x=X(v);g+=`<text class="tick" x="${x.toFixed(1)}" y="${H-m.b+16}" text-anchor="middle">${fmt(v)}</text>`;});}
   else{ticks(xmax).forEach(v=>{const x=X(v);g+=`<text class="tick" x="${x.toFixed(1)}" y="${H-m.b+16}" text-anchor="middle">${fmt(v)}</text>`;});}
   // axes
   g+=`<line class="axis" x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${m.t+ih}"/>`;
