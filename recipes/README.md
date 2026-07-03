@@ -12,8 +12,8 @@ Each subdirectory is one **reproducible benchmark recipe**. A recipe consists of
 ### 0. Prerequisites
 
 ```bash
-# Clone this repo + lmswitch
-cd ~/dev/dgx-spark-bench
+# Clone this repo + lmswitch (paths are your choice)
+cd <path-to-dgx-spark-bench-repo>
 uv venv harness/.venv && uv pip install --python harness/.venv/bin/python httpx pyyaml jsonschema
 ```
 
@@ -22,7 +22,7 @@ uv venv harness/.venv && uv pip install --python harness/.venv/bin/python httpx 
 Copy the bench profile into your lmswitch `ai-models/` directory, then start it.
 
 ```bash
-cp ~/dev/dgx-spark-bench/recipes/<recipe-id>/<recipe-id>.yaml ~/utils/lmswitch/ai-models/
+cp <path-to-dgx-spark-bench-repo>/recipes/<recipe-id>/<recipe-id>.yaml <path-to-lmswitch>/ai-models/
 lmswitch on <recipe-id>            # blocks until "Ready on port <port>"
 ```
 
@@ -31,7 +31,7 @@ lmswitch on <recipe-id>            # blocks until "Ready on port <port>"
 The harness drives a concurrency-throughput sweep against the served endpoint.
 
 ```bash
-cd ~/dev/dgx-spark-bench/harness
+cd <path-to-dgx-spark-bench-repo>/harness
 taskset -c 0,1 .venv/bin/python bench.py \
   ../recipes/<recipe-id>/harness.yaml \
   -o ../results/<recipe-id>.json
