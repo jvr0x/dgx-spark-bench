@@ -64,6 +64,23 @@
   .chip .m{background:rgba(0,204,51,.12);color:var(--good)}
   .chip .p{background:rgba(196,134,31,.14);color:var(--warn)}
   .chip:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+  .chip .x{color:var(--ink-faint);margin-left:2px}
+  .chip:hover .x{color:var(--sla)}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .presets button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:none;
+    border:1px solid var(--line);border-radius:4px;color:var(--ink-dim);padding:4px 10px;cursor:pointer}
+  .presets button:hover{color:var(--green);border-color:var(--green)}
+  .chipmsg{font-family:var(--mono);font-size:11px;color:var(--warn);min-height:16px;margin-top:6px;opacity:0;transition:opacity .25s}
+  .chipmsg.show{opacity:1}
+  .addwrap{position:relative;display:flex}
+  .addinput{font-family:var(--mono);font-size:12px;background:none;border:1px dashed var(--line);border-radius:999px;color:var(--ink);padding:6px 12px;min-width:200px;outline:none}
+  .addinput:focus{border-color:var(--green)}
+  .addlist{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;max-height:280px;overflow:auto;min-width:330px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .addlist button{display:flex;gap:8px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);color:var(--ink-dim);font-family:var(--mono);font-size:12px;padding:8px 12px;cursor:pointer}
+  .addlist button:hover{background:rgba(0,255,65,.06);color:var(--ink)}
+  .addlist button b{color:var(--ink);font-weight:600}
+  .addlist .none{padding:10px 12px;font-size:12px;color:var(--ink-faint)}
+  .dlabel{font-size:10px;fill:var(--ink);font-family:var(--mono)}
 
   .sla{min-width:280px}
   .sla input[type=range]{width:100%;accent-color:var(--sla);margin-top:4px}
@@ -170,8 +187,10 @@
 
   <section class="controls">
     <div>
-      <div class="ctrl-label">Configurations &nbsp;·&nbsp; model · quant · backend</div>
+      <div class="ctrl-label">Configurations &nbsp;·&nbsp; model · quant · backend &nbsp;·&nbsp; up to 7 at once</div>
+      <div class="presets" id="presets"></div>
       <div class="chips" id="chips"></div>
+      <div class="chipmsg" id="chipmsg" role="status"></div>
     </div>
     <div class="ctrl-row">
       <div class="sla">
@@ -266,7 +285,7 @@ let CFG = [];  // populated by loadResults() or the fallback
 function seriesToCfg(s, run, idx){
   return {
     id: s.id, model: s.model, pb: s.params_b, quant: s.quant, be: s.backend,
-    st: s.status, wgb: s.weights_gb, src: run.id, c: PALETTE[idx % PALETTE.length],
+    st: s.status, wgb: s.weights_gb, src: run.id,
     config: s.config || null, recipeUrl: s.recipe_url || null,
     points: s.points.map(p => ({
       n: p.concurrency, agg: p.agg_tok_s, per: p.per_session_tok_s,
@@ -298,6 +317,47 @@ const state = {
   sla:500, view:"charts", focus:"p95", yscale:"log",
   sort:{key:"agg",dir:-1}
 };
+
+/* ---------- active-set color slots (color follows the entity, never cycles) ---------- */
+const MAX_ACTIVE = PALETTE.length;
+const slots = new Map();  // series id -> palette slot; freed slots are reused, survivors never repaint
+function enable(id){
+  if(state.visible.has(id))return true;
+  if(state.visible.size>=MAX_ACTIVE){chipMsg(`${MAX_ACTIVE} configs max on screen — remove one first`);return false;}
+  const used=new Set(slots.values());let i=0;while(used.has(i))i++;
+  slots.set(id,i);state.visible.add(id);
+  const cf=CFG.find(c=>c.id===id);if(cf)cf.color=cssvar(PALETTE[i]);
+  return true;
+}
+function disable(id){state.visible.delete(id);slots.delete(id);}
+function chipMsg(t){const el=document.getElementById("chipmsg");el.textContent=t;el.classList.add("show");
+  clearTimeout(chipMsg._t);chipMsg._t=setTimeout(()=>el.classList.remove("show"),2600);}
+function persist(){try{localStorage.setItem("sparkbench-visible-v1",JSON.stringify([...state.visible]))}catch(e){}}
+function restore(){try{const v=JSON.parse(localStorage.getItem("sparkbench-visible-v1")||"null");return Array.isArray(v)?v:null}catch(e){return null}}
+function refresh(){buildChips();persist();renderAll();}
+
+/* Curated default: the headline story — flagship + backend contrast + quant ladder + cross-backend pair */
+const DEFAULT_ON=["qwen3.6-35b-nvfp4-nvidia","qwen3.6-35b-q8-llamacpp","qwen3.6-35b-q4-llamacpp",
+  "qwen-agentworld-35b-bf16","gpt-oss-20b-llamacpp","nemotron3-nano-30b-fp8","nemotron3-nano-30b-q8-llamacpp"];
+const PRESETS=[
+  ["headline", ()=>DEFAULT_ON],
+  ["quant ladder", ()=>["qwen-agentworld-35b-bf16","qwen3.6-35b-q8-llamacpp","qwen3.6-35b-q4-llamacpp",
+    "qwen3.6-35b-nvfp4-specoff","qwen3.6-35b-nvfp4-nvidia"]],
+  ["llama.cpp", ()=>CFG.filter(c=>c.be==="llama.cpp").map(c=>c.id)],
+  ["vLLM", ()=>CFG.filter(c=>/vllm/i.test(c.be)).map(c=>c.id)],
+  ["clear", ()=>[]],
+];
+function applySet(ids){
+  state.visible.clear();slots.clear();
+  const present=ids.filter(id=>CFG.some(c=>c.id===id));
+  if(present.length>MAX_ACTIVE)chipMsg(`showing first ${MAX_ACTIVE} of ${present.length} — 7 distinguishable colors is the limit`);
+  present.slice(0,MAX_ACTIVE).forEach(enable);
+  refresh();
+}
+function buildPresets(){
+  document.getElementById("presets").innerHTML=PRESETS.map(([n],i)=>`<button data-i="${i}">${n}</button>`).join("");
+  document.querySelectorAll("#presets button").forEach(b=>b.onclick=()=>applySet(PRESETS[+b.dataset.i][1]()));
+}
 
 /* ---------- scales / ticks ---------- */
 const log2 = x => Math.log(x)/Math.LN2;
@@ -370,6 +430,17 @@ function lineChart(host,{xs,xAcc,yAcc,xType,yType,yLabel,xLabel,series,sla,smin}
       data-s="${s.label}" data-n="${p.n}" data-agg="${p.agg.toFixed(1)}" data-per="${p.per.toFixed(1)}"
       data-p50="${p.p50.toFixed(0)}" data-p95="${p.p95.toFixed(0)}" data-p99="${p.p99.toFixed(0)}" data-anchor="${p.anchor}"/>`;
   }));
+  // direct labels when few enough to stay clean (legend chips still carry full identity)
+  if(series.length&&series.length<=4){
+    const placed=[];
+    series.map(s=>{const lp=s.pts[s.pts.length-1];return lp?{x:X(xAcc(lp)),y:Y(yAcc(lp)),t:s.label.split(" · ")[0]}:null;})
+      .filter(Boolean).sort((a,b)=>a.y-b.y).forEach(l=>{
+        let y=Math.max(m.t+9,Math.min(l.y-7,m.t+ih-4));
+        while(placed.some(p=>Math.abs(p-y)<11))y+=11;
+        placed.push(y);
+        g+=`<text class="dlabel" x="${Math.min(l.x,W-m.r).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end">${l.t}</text>`;
+      });
+  }
   host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${yLabel} vs ${xLabel}">${g}</svg>`;
 }
 function fmt(v){if(v>=1000)return (v/1000).toFixed(v%1000?1:0)+"k";return v%1?v.toFixed(1):String(v);}
@@ -451,15 +522,39 @@ function renderAll(){renderSqueeze();
 function buildSpecs(){document.getElementById("specs").innerHTML=
   SPEC.map(([k,v])=>`<div class="spec"><span>${k}</span><b>${v}</b></div>`).join("");}
 function buildChips(){
-  document.getElementById("chips").innerHTML=CFG.map(cf=>`
-    <button class="chip ${state.visible.has(cf.id)?"":"off"}" data-id="${cf.id}" style="--sw:${cf.color}" aria-pressed="${state.visible.has(cf.id)}">
+  // Active series as removable chips + a filter-as-you-type picker for the rest.
+  // Reason: 20+ always-on chips buried the controls; the picker scales, the cap keeps charts legible.
+  const active=CFG.filter(c=>state.visible.has(c.id));
+  const rest=CFG.length-active.length;
+  document.getElementById("chips").innerHTML=active.map(cf=>`
+    <button class="chip" data-id="${cf.id}" style="--sw:${cf.color}" aria-pressed="true" title="remove from charts">
       <span class="dot"></span>${cf.model} <span style="color:var(--ink-faint)">${cf.quant}/${cf.be}</span>
-      <span class="tag ${cf.st==="measured"?"m":"p"}">${cf.st==="measured"?"meas":"proj"}</span>
-    </button>`).join("");
-  document.querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{
-    const id=ch.dataset.id;state.visible.has(id)?state.visible.delete(id):state.visible.add(id);
-    ch.classList.toggle("off");ch.setAttribute("aria-pressed",state.visible.has(id));
-    renderAll();});
+      <span class="x">&times;</span>
+    </button>`).join("")
+    +`<span class="addwrap"><input id="addinput" class="addinput" placeholder="+ add config… (${rest} available)"
+       autocomplete="off" role="combobox" aria-expanded="false" aria-label="Add configuration">
+       <div class="addlist hidden" id="addlist"></div></span>`;
+  document.querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>{disable(ch.dataset.id);refresh();});
+  const inp=document.getElementById("addinput"), list=document.getElementById("addlist");
+  const matches=q=>CFG.filter(c=>!state.visible.has(c.id)&&(c.model+" "+c.quant+" "+c.be+" "+c.id).toLowerCase().includes(q));
+  const renderList=()=>{
+    const q=inp.value.trim().toLowerCase();
+    list.innerHTML=matches(q).map(c=>`<button data-id="${c.id}"><b>${c.model}</b><span>${c.quant} · ${c.be}</span>
+      <span class="tag ${c.st==="measured"?"m":"p"}">${c.st==="measured"?"meas":"proj"}</span></button>`).join("")
+      ||`<div class="none">no config matches "${inp.value}"</div>`;
+    // Reason: mousedown (not click) so the pick lands before the input's blur hides the list
+    list.querySelectorAll("button").forEach(b=>b.onmousedown=e=>{e.preventDefault();
+      if(enable(b.dataset.id)){refresh();const ni=document.getElementById("addinput");if(ni){ni.focus();}}});
+  };
+  inp.onfocus=()=>{renderList();list.classList.remove("hidden");inp.setAttribute("aria-expanded","true");};
+  inp.oninput=renderList;
+  inp.onblur=()=>setTimeout(()=>{list.classList.add("hidden");inp.setAttribute("aria-expanded","false");},150);
+  inp.onkeydown=e=>{
+    if(e.key==="Enter"){const b=list.querySelector("button");
+      if(b&&enable(b.dataset.id)){refresh();const ni=document.getElementById("addinput");if(ni)ni.focus();}
+      e.preventDefault();}
+    else if(e.key==="Escape")inp.blur();
+  };
 }
 function buildFocus(){
   const sel=document.getElementById("focus");
@@ -513,11 +608,16 @@ async function boot(){
     console.warn("results fetch failed, using embedded fallback model:", err);
     CFG = FALLBACK;
   }
-  CFG.forEach(cf=>{cf.color=cssvar(cf.c); if(!cf.points) cf.points=genPoints(cf);});
-  // default view: measured series on, projections off unless nothing is measured
-  const measured = CFG.filter(c=>c.st==="measured");
-  (measured.length?measured:CFG).forEach(c=>state.visible.add(c.id));
-  buildSpecs();buildChips();buildFocus();wire();renderAll();
+  CFG.forEach(cf=>{if(!cf.points)cf.points=genPoints(cf);});
+  // default view: saved selection if any, else the curated headline set, else first measured
+  const saved=restore();
+  let initial=saved?saved.filter(id=>CFG.some(c=>c.id===id)):[];
+  if(!initial.length){
+    initial=DEFAULT_ON.filter(id=>CFG.some(c=>c.id===id));
+    if(!initial.length){const meas=CFG.filter(c=>c.st==="measured");initial=(meas.length?meas:CFG).slice(0,MAX_ACTIVE).map(c=>c.id);}
+  }
+  initial.slice(0,MAX_ACTIVE).forEach(enable);
+  buildSpecs();buildPresets();buildChips();buildFocus();wire();renderAll();
 }
 boot();
 </script>
