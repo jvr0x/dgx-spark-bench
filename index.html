@@ -336,9 +336,10 @@ function persist(){try{localStorage.setItem("sparkbench-visible-v1",JSON.stringi
 function restore(){try{const v=JSON.parse(localStorage.getItem("sparkbench-visible-v1")||"null");return Array.isArray(v)?v:null}catch(e){return null}}
 function refresh(){buildChips();persist();renderAll();}
 
-/* Curated default: the headline story — flagship + backend contrast + quant ladder + cross-backend pair */
-const DEFAULT_ON=["qwen3.6-35b-nvfp4-nvidia","qwen3.6-35b-q8-llamacpp","qwen3.6-35b-q4-llamacpp",
-  "qwen-agentworld-35b-bf16","gpt-oss-20b-llamacpp","nemotron3-nano-30b-fp8","nemotron3-nano-30b-q8-llamacpp"];
+/* Curated default: vendor + architecture spread — Qwen (flagship MoE / Q8 / dense 27B),
+   Gemma (small-active MoE / dense), gpt-oss, and the sub-second-TTFT nemotron omni */
+const DEFAULT_ON=["qwen3.6-35b-nvfp4-nvidia","qwen3.6-35b-q8-llamacpp","qwen3.6-27b-nvfp4-nvidia",
+  "gemma-4-26b-a4b-bf16","gemma-4-31b-nvfp4","gpt-oss-20b-llamacpp","nemotron3-nano-omni-nvfp4-vllm"];
 const PRESETS=[
   ["headline", ()=>DEFAULT_ON],
   ["quant ladder", ()=>["qwen-agentworld-35b-bf16","qwen3.6-35b-q8-llamacpp","qwen3.6-35b-q4-llamacpp",
