@@ -21,6 +21,7 @@
     "nemotron3-nano-omni-nvfp4-vllm.json",
     "qwen3.6-27b-nvfp4-aeon7-bench.json",
     "qwen3.6-27b-nvfp4-miaai-bench.json",
-    "qwen3.6-35b-heretic-dflash-bench.json"
+    "qwen3.6-35b-heretic-dflash-bench.json",
+    "nex-n2-pro-iq1m-llamacpp.json"
   ]
 }
