@@ -14,4 +14,9 @@ display_name: "DeepSeek-V4-Flash-Spark [BENCH]"
 # -kvu: unified KV buffer; explicit -np disables it, and split mode measured
 # ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
 # Fork build: if -kvu/-np are unsupported by this branch, boot fails -> flag and skip.
-extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "16", "-kvu"]
+# SKIPPED 2026-07-04: fork-blocked. The llama.cpp-deepseek-v4-flash build (b1-2f2d440)
+# crashes on the bench request shape (stream + ignore_eos + min_tokens) even at 4 slots,
+# and segfaults in graph_compute at -np 16/-kvu. Plain short completions work — daily
+# use is unaffected. Both deepseek recipes need a fork rebase before benching.
+# results/deepseek-v4-flash-spark-q3-llamacpp.json is all-zero garbage; NOT in manifest.
+extra_args: ["-fa", "on", "-ctk", "q8_0", "-ctv", "q8_0", "-np", "4"]

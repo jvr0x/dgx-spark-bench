@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "deepseek-v4-flash-spark-q3-llamacpp-2026-07-03T23:27:11Z",
+    "timestamp": "2026-07-03T23:27:11Z",
+    "harness_version": "0.1.0",
+    "git_commit": "128c60a",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "deepseek-v4-flash-spark-q3-llamacpp",
+      "model": "DeepSeek-V4-Flash-Spark",
+      "params_b": 162,
+      "quant": "GGUF Q3 REAP",
+      "backend": "llama.cpp",
+      "status": "measured",
+      "weights_gb": 77,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/deepseek-v4-flash-spark-q3-llamacpp",
+      "config": {
+        "checkpoint": "0xSero/DeepSeek-V4-Flash-Spark-GGUF/DeepSeek-V4-Flash-Spark-Q3-Dynamic-REAP-ds4.gguf",
+        "runtime": "llama.cpp",
+        "quantization": "Q3 REAP",
+        "flash_attention": true,
+        "kv_cache_dtype": "q8_0",
+        "ctx": 32768,
+        "parallel": 4,
+        "kv_unified": false,
+        "speculative": "NONE (llama.cpp)",
+        "note": "162B-class MoE at Q3, 77G weights \u2014 reduced slots/ctx to fit"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 264084
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 272061
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 276439
+        }
+      ]
+    }
+  ]
+}

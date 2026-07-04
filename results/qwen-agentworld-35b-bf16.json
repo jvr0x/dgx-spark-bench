@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen-agentworld-35b-bf16-2026-07-04T07:30:01Z",
+    "timestamp": "2026-07-04T07:30:01Z",
+    "harness_version": "0.1.0",
+    "git_commit": "128c60a",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen-agentworld-35b-bf16",
+      "model": "Qwen-AgentWorld-35B-A3B",
+      "params_b": 35,
+      "quant": "BF16",
+      "backend": "vLLM 0.23",
+      "status": "measured",
+      "weights_gb": 65,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen-agentworld-35b-bf16",
+      "config": {
+        "checkpoint": "Qwen-AgentWorld-35B-A3B",
+        "runtime": "vLLM",
+        "quantization": "BF16",
+        "flash_attention": true,
+        "kv_cache_dtype": "fp8",
+        "ctx": 32768,
+        "max_num_seqs": 64,
+        "speculative": "NONE",
+        "note": "unquantized bf16 baseline for the 35B-A3B family"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 25.6,
+          "per_session_tok_s": 26.6,
+          "ttft_ms": {
+            "p50": 286,
+            "p95": 298,
+            "p99": 300
+          },
+          "itl_ms": {
+            "p50": 37.7,
+            "p95": 38.7,
+            "p99": 47.8
+          },
+          "samples": 18
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 45.5,
+          "per_session_tok_s": 23.5,
+          "ttft_ms": {
+            "p50": 439,
+            "p95": 537,
+            "p99": 544
+          },
+          "itl_ms": {
+            "p50": 43.1,
+            "p95": 44.7,
+            "p99": 45.9
+          },
+          "samples": 32
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 19.0,
+          "ttft_ms": {
+            "p50": 843,
+            "p95": 850,
+            "p99": 851
+          },
+          "itl_ms": {
+            "p50": 54.4,
+            "p95": 58.7,
+            "p99": 60.2
+          },
+          "samples": 48
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 113.8,
+          "per_session_tok_s": 14.5,
+          "ttft_ms": {
+            "p50": 1484,
+            "p95": 1500,
+            "p99": 1502
+          },
+          "itl_ms": {
+            "p50": 70.0,
+            "p95": 80.0,
+            "p99": 85.6
+          },
+          "samples": 80
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 159.3,
+          "per_session_tok_s": 11.1,
+          "ttft_ms": {
+            "p50": 2349,
+            "p95": 2416,
+            "p99": 2418
+          },
+          "itl_ms": {
+            "p50": 90.2,
+            "p95": 104.6,
+            "p99": 113.7
+          },
+          "samples": 112
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 227.6,
+          "per_session_tok_s": 7.8,
+          "ttft_ms": {
+            "p50": 2801,
+            "p95": 5336,
+            "p99": 6272
+          },
+          "itl_ms": {
+            "p50": 117.1,
+            "p95": 144.7,
+            "p99": 904.1
+          },
+          "samples": 160
+        }
+      ]
+    }
+  ]
+}

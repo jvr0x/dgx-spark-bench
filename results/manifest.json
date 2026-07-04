@@ -13,6 +13,10 @@
     "kimi-linear-48b-q8-llamacpp.json",
     "qwen3-coder-next-q4-llamacpp.json",
     "nemotron3-nano-30b-q8-llamacpp.json",
-    "qwopus3.6-27b-coder-q8-llamacpp.json"
+    "qwopus3.6-27b-coder-q8-llamacpp.json",
+    "qwen-agentworld-35b-bf16.json",
+    "gemma-4-26b-a4b-bf16.json",
+    "gemma-4-31b-nvfp4.json",
+    "nemotron3-nano-30b-fp8.json"
   ]
 }

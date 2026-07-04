@@ -23,8 +23,8 @@ series:
     flash_attention: true
     kv_cache_dtype: q8_0
     ctx: 32768
-    parallel: 16
-    kv_unified: true
+    parallel: 4
+    kv_unified: false
     speculative: NONE (llama.cpp)
     note: "162B-class MoE at Q3, 77G weights — reduced slots/ctx to fit"
 
@@ -50,7 +50,7 @@ workload:
   output_tokens: 256
 
 sweep:
-  concurrencies: [1, 2, 4, 8, 16]
+  concurrencies: [1, 2, 4]  # fork crashes above 4 slots — see profile
   warmup_s: 30
   measure_s: 180
   request_timeout_s: 300
