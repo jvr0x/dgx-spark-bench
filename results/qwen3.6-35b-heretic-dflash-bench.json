@@ -1,0 +1,174 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.6-35b-heretic-dflash-bench-2026-07-04T11:17:08Z",
+    "timestamp": "2026-07-04T11:17:08Z",
+    "harness_version": "0.1.0",
+    "git_commit": "8b65545",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.6-35b-heretic-dflash-bench",
+      "model": "Qwen3.6-35B-heretic",
+      "params_b": 35,
+      "quant": "NVFP4-mixed (compressed-tensors)",
+      "backend": "vLLM 0.23",
+      "status": "measured",
+      "weights_gb": 22,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-heretic-dflash-bench",
+      "config": {
+        "checkpoint": "AEON-7/Qwen3.6-35B-A3B-heretic-NVFP4",
+        "runtime": "vLLM",
+        "quantization": "NVFP4-mixed (compressed-tensors)",
+        "flash_attention": true,
+        "kv_cache_dtype": "bf16 (DFlash requires)",
+        "ctx": 32768,
+        "max_num_seqs": 64,
+        "speculative": "DFlash, 6 tokens, drafter=AEON-7/AEON-DFlash-Qwen3.6-35B-A3B",
+        "note": "heretic finetune + DFlash n=6 vs the nvidia MTP recipe"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 85.3,
+          "per_session_tok_s": 95.1,
+          "ttft_ms": {
+            "p50": 203,
+            "p95": 206,
+            "p99": 13809
+          },
+          "itl_ms": {
+            "p50": 40.8,
+            "p95": 42.5,
+            "p99": 43.1
+          },
+          "samples": 60
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 135.1,
+          "per_session_tok_s": 73.4,
+          "ttft_ms": {
+            "p50": 262,
+            "p95": 302,
+            "p99": 310
+          },
+          "itl_ms": {
+            "p50": 50.8,
+            "p95": 53.5,
+            "p99": 118.9
+          },
+          "samples": 95
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 200.5,
+          "per_session_tok_s": 54.2,
+          "ttft_ms": {
+            "p50": 313,
+            "p95": 412,
+            "p99": 422
+          },
+          "itl_ms": {
+            "p50": 67.0,
+            "p95": 97.3,
+            "p99": 151.9
+          },
+          "samples": 141
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 294.4,
+          "per_session_tok_s": 39.4,
+          "ttft_ms": {
+            "p50": 375,
+            "p95": 518,
+            "p99": 582
+          },
+          "itl_ms": {
+            "p50": 87.5,
+            "p95": 180.4,
+            "p99": 198.7
+          },
+          "samples": 207
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 399.6,
+          "per_session_tok_s": 26.8,
+          "ttft_ms": {
+            "p50": 583,
+            "p95": 738,
+            "p99": 808
+          },
+          "itl_ms": {
+            "p50": 123.6,
+            "p95": 233.2,
+            "p99": 287.5
+          },
+          "samples": 281
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 489.2,
+          "per_session_tok_s": 16.2,
+          "ttft_ms": {
+            "p50": 938,
+            "p95": 1520,
+            "p99": 1770
+          },
+          "itl_ms": {
+            "p50": 197.5,
+            "p95": 387.3,
+            "p99": 485.1
+          },
+          "samples": 344
+        },
+        {
+          "concurrency": 64,
+          "agg_tok_s": 517.7,
+          "per_session_tok_s": 8.9,
+          "ttft_ms": {
+            "p50": 2461,
+            "p95": 7733,
+            "p99": 11985
+          },
+          "itl_ms": {
+            "p50": 352.2,
+            "p95": 704.9,
+            "p99": 844.3
+          },
+          "samples": 364
+        }
+      ]
+    }
+  ]
+}

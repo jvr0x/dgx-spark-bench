@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "nemotron3-nano-omni-nvfp4-vllm-2026-07-04T09:21:35Z",
+    "timestamp": "2026-07-04T09:21:35Z",
+    "harness_version": "0.1.0",
+    "git_commit": "9ca810b",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "nemotron3-nano-omni-nvfp4-vllm",
+      "model": "Nemotron-3-Nano-Omni-30B-A3B",
+      "params_b": 30,
+      "quant": "NVFP4",
+      "backend": "vLLM 0.23",
+      "status": "measured",
+      "weights_gb": 21,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/nemotron3-nano-omni-nvfp4-vllm",
+      "config": {
+        "checkpoint": "nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4",
+        "runtime": "vLLM",
+        "quantization": "NVFP4",
+        "flash_attention": true,
+        "kv_cache_dtype": "auto",
+        "ctx": 32768,
+        "max_num_seqs": 64,
+        "speculative": "NONE",
+        "note": "omni (multimodal) checkpoint benched text-only"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 37.0,
+          "per_session_tok_s": 38.9,
+          "ttft_ms": {
+            "p50": 129,
+            "p95": 131,
+            "p99": 139
+          },
+          "itl_ms": {
+            "p50": 26.7,
+            "p95": 28.4,
+            "p99": 30.9
+          },
+          "samples": 26
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 76.8,
+          "per_session_tok_s": 40.1,
+          "ttft_ms": {
+            "p50": 212,
+            "p95": 226,
+            "p99": 483
+          },
+          "itl_ms": {
+            "p50": 24.4,
+            "p95": 29.1,
+            "p99": 31.3
+          },
+          "samples": 54
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 142.2,
+          "per_session_tok_s": 37.4,
+          "ttft_ms": {
+            "p50": 354,
+            "p95": 412,
+            "p99": 429
+          },
+          "itl_ms": {
+            "p50": 27.1,
+            "p95": 30.1,
+            "p99": 33.4
+          },
+          "samples": 100
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 227.6,
+          "per_session_tok_s": 30.6,
+          "ttft_ms": {
+            "p50": 501,
+            "p95": 584,
+            "p99": 611
+          },
+          "itl_ms": {
+            "p50": 31.4,
+            "p95": 37.3,
+            "p99": 74.9
+          },
+          "samples": 160
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 358.4,
+          "per_session_tok_s": 23.2,
+          "ttft_ms": {
+            "p50": 599,
+            "p95": 733,
+            "p99": 902
+          },
+          "itl_ms": {
+            "p50": 39.8,
+            "p95": 48.6,
+            "p99": 200.6
+          },
+          "samples": 252
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 546.1,
+          "per_session_tok_s": 16.8,
+          "ttft_ms": {
+            "p50": 693,
+            "p95": 979,
+            "p99": 1003
+          },
+          "itl_ms": {
+            "p50": 53.3,
+            "p95": 85.3,
+            "p99": 246.7
+          },
+          "samples": 384
+        }
+      ]
+    }
+  ]
+}

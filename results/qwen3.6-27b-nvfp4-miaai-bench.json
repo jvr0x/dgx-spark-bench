@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.6-27b-nvfp4-miaai-bench-2026-07-04T10:48:15Z",
+    "timestamp": "2026-07-04T10:48:15Z",
+    "harness_version": "0.1.0",
+    "git_commit": "8b65545",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.6-27b-nvfp4-miaai-bench",
+      "model": "Qwen3.6-27B",
+      "params_b": 27,
+      "quant": "NVFP4",
+      "backend": "vLLM 0.23",
+      "status": "measured",
+      "weights_gb": 21,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-27b-nvfp4-miaai-bench",
+      "config": {
+        "checkpoint": "nvidia/Qwen3.6-27B-NVFP4",
+        "runtime": "vLLM",
+        "quantization": "NVFP4",
+        "flash_attention": true,
+        "kv_cache_dtype": "auto",
+        "ctx": 32768,
+        "max_num_seqs": 64,
+        "speculative": "MTP, 3 tokens, triton MoE",
+        "note": "A/B vs aeon7: MiaAI-Lab repo config on stock nightly image, MTP n=3"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 34.1,
+          "per_session_tok_s": 37.3,
+          "ttft_ms": {
+            "p50": 854,
+            "p95": 892,
+            "p99": 955
+          },
+          "itl_ms": {
+            "p50": 107.0,
+            "p95": 108.1,
+            "p99": 116.9
+          },
+          "samples": 24
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 56.9,
+          "per_session_tok_s": 35.6,
+          "ttft_ms": {
+            "p50": 1589,
+            "p95": 1694,
+            "p99": 1708
+          },
+          "itl_ms": {
+            "p50": 111.8,
+            "p95": 114.7,
+            "p99": 124.0
+          },
+          "samples": 40
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 96.7,
+          "per_session_tok_s": 33.1,
+          "ttft_ms": {
+            "p50": 3001,
+            "p95": 3058,
+            "p99": 3070
+          },
+          "itl_ms": {
+            "p50": 120.5,
+            "p95": 122.0,
+            "p99": 134.1
+          },
+          "samples": 68
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 136.5,
+          "per_session_tok_s": 28.7,
+          "ttft_ms": {
+            "p50": 5719,
+            "p95": 5837,
+            "p99": 5841
+          },
+          "itl_ms": {
+            "p50": 139.2,
+            "p95": 141.5,
+            "p99": 147.5
+          },
+          "samples": 96
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 182.0,
+          "per_session_tok_s": 17.1,
+          "ttft_ms": {
+            "p50": 8474,
+            "p95": 10678,
+            "p99": 11889
+          },
+          "itl_ms": {
+            "p50": 177.6,
+            "p95": 181.0,
+            "p99": 2924.6
+          },
+          "samples": 128
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 211.9,
+          "per_session_tok_s": 10.9,
+          "ttft_ms": {
+            "p50": 15112,
+            "p95": 22549,
+            "p99": 22554
+          },
+          "itl_ms": {
+            "p50": 284.0,
+            "p95": 294.5,
+            "p99": 6923.5
+          },
+          "samples": 149
+        }
+      ]
+    }
+  ]
+}

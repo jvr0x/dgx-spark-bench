@@ -17,6 +17,10 @@
     "qwen-agentworld-35b-bf16.json",
     "gemma-4-26b-a4b-bf16.json",
     "gemma-4-31b-nvfp4.json",
-    "nemotron3-nano-30b-fp8.json"
+    "nemotron3-nano-30b-fp8.json",
+    "nemotron3-nano-omni-nvfp4-vllm.json",
+    "qwen3.6-27b-nvfp4-aeon7-bench.json",
+    "qwen3.6-27b-nvfp4-miaai-bench.json",
+    "qwen3.6-35b-heretic-dflash-bench.json"
   ]
 }
