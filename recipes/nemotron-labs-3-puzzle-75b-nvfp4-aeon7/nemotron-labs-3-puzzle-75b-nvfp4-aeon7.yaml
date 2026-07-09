@@ -8,7 +8,7 @@ runtime: vllm
 model: "nvidia/NVIDIA-Nemotron-Labs-3-Puzzle-75B-A9B-NVFP4"
 port: 8243
 ctx: 32768
-display_name: "Nemotron-Labs-3-Puzzle-75B NVFP4 [BENCH]"
+display_name: "Nemotron Puzzle 75B NVFP4 (AEON) [BENCH]"
 
 # IMAGE: AEON's vLLM 0.23 ultimate build for GB10/sm_121a with Mamba2 + FlashInfer CUTLASS.
 # ENTRYPOINT is /bin/bash (not vllm serve).
@@ -37,8 +37,7 @@ tool_call_parser: "qwen3_coder"
 reasoning_parser: "nemotron_v3"
 trust_remote_code: true
 
-# Flags from joeynyc's recipe + AEON's mandatory moe_backend fix.
-# --moe-backend triton is required for AEON vLLM (marlin rejected for unquantized MoE).
+# MoE: flashinfer_cutlass only valid backend for mixed-precision NVFP4 + BF16 MoE layers.
 extra_args:
   - "--mamba-backend"
   - "flashinfer"
