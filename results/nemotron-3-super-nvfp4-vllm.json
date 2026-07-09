@@ -1,0 +1,235 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "nemotron-3-super-nvfp4-vllm-2026-07-09T21:40:00Z",
+    "timestamp": "2026-07-09T21:40:00Z",
+    "harness_version": "0.1.0",
+    "git_commit": "7f10cc4",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        12,
+        16,
+        24,
+        32,
+        48,
+        64
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "nemotron-3-super-nvfp4-vllm",
+      "model": "Nemotron-3-Super-120B-A12B",
+      "params_b": 120,
+      "quant": "NVFP4 + MTP",
+      "backend": "vLLM",
+      "weights_gb": 74.8,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/nemotron-3-super-nvfp4-vllm",
+      "config": {
+        "checkpoint": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4",
+        "image": "vllm/vllm-openai:cu130-nightly (default)",
+        "quantization": "modelopt_mixed (NVFP4)",
+        "attention_backend": "flashinfer",
+        "kv_cache_dtype": "fp8",
+        "speculative": "MTP, 3 tokens",
+        "moe_backend": "flashinfer_cutlass (mixed-precision MoE)",
+        "nvfp4_gemm_backend": "marlin (VLLM_NVFP4_GEMM_BACKEND)",
+        "mamba_backend": "flashinfer",
+        "reasoning_parser": "super_v3 (+ plugin)",
+        "max_num_seqs": 64,
+        "max_model_len": 32768,
+        "max_num_batched_tokens": 16384,
+        "cuda_graphs": "true (enforce_eager false)",
+        "chunked_prefill": true,
+        "async_scheduling": true,
+        "prefix_caching": "on (defeated by unique prompts)",
+        "load_format": "auto",
+        "note": "Hybrid Mamba-2 + LatentMoE + attention; 120B total / 12B active; largest Nemotron benched on Spark"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 22.8,
+          "per_session_tok_s": 24.5,
+          "ttft_ms": {
+            "p50": 570,
+            "p95": 577,
+            "p99": 577
+          },
+          "itl_ms": {
+            "p50": 113.7,
+            "p95": 117.8,
+            "p99": 119.9
+          },
+          "samples": 16
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 34.1,
+          "per_session_tok_s": 18.7,
+          "ttft_ms": {
+            "p50": 730,
+            "p95": 741,
+            "p99": 742
+          },
+          "itl_ms": {
+            "p50": 142.8,
+            "p95": 148.3,
+            "p99": 468.6
+          },
+          "samples": 24
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 51.2,
+          "per_session_tok_s": 13.6,
+          "ttft_ms": {
+            "p50": 883,
+            "p95": 1176,
+            "p99": 1351
+          },
+          "itl_ms": {
+            "p50": 190.7,
+            "p95": 199.7,
+            "p99": 498.8
+          },
+          "samples": 36
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 9.8,
+          "ttft_ms": {
+            "p50": 1259,
+            "p95": 1965,
+            "p99": 1991
+          },
+          "itl_ms": {
+            "p50": 257.6,
+            "p95": 525.9,
+            "p99": 542.5
+          },
+          "samples": 48
+        },
+        {
+          "concurrency": 12,
+          "agg_tok_s": 98.1,
+          "per_session_tok_s": 8.3,
+          "ttft_ms": {
+            "p50": 1628,
+            "p95": 3581,
+            "p99": 3581
+          },
+          "itl_ms": {
+            "p50": 303.5,
+            "p95": 555.7,
+            "p99": 803.1
+          },
+          "samples": 69
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 119.5,
+          "per_session_tok_s": 7.8,
+          "ttft_ms": {
+            "p50": 1729,
+            "p95": 4658,
+            "p99": 4660
+          },
+          "itl_ms": {
+            "p50": 330.1,
+            "p95": 580.8,
+            "p99": 828.3
+          },
+          "samples": 84
+        },
+        {
+          "concurrency": 24,
+          "agg_tok_s": 142.2,
+          "per_session_tok_s": 6.5,
+          "ttft_ms": {
+            "p50": 2109,
+            "p95": 6794,
+            "p99": 6795
+          },
+          "itl_ms": {
+            "p50": 382.8,
+            "p95": 635.7,
+            "p99": 1099.0
+          },
+          "samples": 100
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 182.0,
+          "per_session_tok_s": 5.8,
+          "ttft_ms": {
+            "p50": 2487,
+            "p95": 9242,
+            "p99": 9244
+          },
+          "itl_ms": {
+            "p50": 421.1,
+            "p95": 901.2,
+            "p99": 1161.0
+          },
+          "samples": 128
+        },
+        {
+          "concurrency": 48,
+          "agg_tok_s": 204.8,
+          "per_session_tok_s": 4.8,
+          "ttft_ms": {
+            "p50": 4474,
+            "p95": 13689,
+            "p99": 14009
+          },
+          "itl_ms": {
+            "p50": 488.1,
+            "p95": 969.1,
+            "p99": 1660.3
+          },
+          "samples": 144
+        },
+        {
+          "concurrency": 64,
+          "agg_tok_s": 221.9,
+          "per_session_tok_s": 4.7,
+          "ttft_ms": {
+            "p50": 11805,
+            "p95": 61796,
+            "p99": 63026
+          },
+          "itl_ms": {
+            "p50": 509.9,
+            "p95": 1211.7,
+            "p99": 1917.1
+          },
+          "samples": 156
+        }
+      ],
+      "status": "measured"
+    }
+  ]
+}

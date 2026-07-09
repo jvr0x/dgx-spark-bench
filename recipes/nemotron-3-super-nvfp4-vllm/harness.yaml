@@ -1,0 +1,66 @@
+# Harness run config for the nemotron-3-super-nvfp4-vllm recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8244.
+#
+#   lmswitch on nemotron-3-super-nvfp4-vllm       # wait for "Ready on port 8244"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/nemotron-3-super-nvfp4-vllm/harness.yaml \
+#     -o ../results/nemotron-3-super-nvfp4-vllm.json
+#   lmswitch off nemotron-3-super-nvfp4-vllm
+
+series:
+  id: nemotron-3-super-nvfp4-vllm
+  model: Nemotron-3-Super-120B-A12B
+  params_b: 120                            # total; 12B active (MoE)
+  quant: NVFP4 + MTP
+  backend: vLLM
+  status: measured
+  weights_gb: 74.8                         # from lmswitch list
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/nemotron-3-super-nvfp4-vllm
+  config:
+    checkpoint: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4
+    image: vllm/vllm-openai:cu130-nightly (default)
+    quantization: modelopt_mixed (NVFP4)
+    attention_backend: flashinfer
+    kv_cache_dtype: fp8
+    speculative: MTP, 3 tokens
+    moe_backend: flashinfer_cutlass (mixed-precision MoE)
+    nvfp4_gemm_backend: marlin (VLLM_NVFP4_GEMM_BACKEND)
+    mamba_backend: flashinfer
+    reasoning_parser: super_v3 (+ plugin)
+    max_num_seqs: 64
+    max_model_len: 32768
+    max_num_batched_tokens: 16384
+    cuda_graphs: true (enforce_eager false)
+    chunked_prefill: true
+    async_scheduling: true
+    prefix_caching: "on (defeated by unique prompts)"
+    load_format: auto
+    note: "Hybrid Mamba-2 + LatentMoE + attention; 120B total / 12B active; largest Nemotron benched on Spark"
+
+engine:
+  base_url: http://localhost:8244
+  model: nemotron-3-super-nvfp4-vllm
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  # max_num_seqs is 64; sweep goes up to that ceiling.
+  concurrencies: [1, 2, 4, 8, 12, 16, 24, 32, 48, 64]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
