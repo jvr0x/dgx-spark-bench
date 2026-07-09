@@ -1,0 +1,70 @@
+# Harness run config for the nemotron-labs-3-puzzle-75b-nvfp4-aeon7 recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8243.
+#
+#   lmswitch on nemotron-labs-3-puzzle-75b-nvfp4-aeon7   # wait for "Ready on port 8243"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/nemotron-labs-3-puzzle-75b-nvfp4-aeon7/harness.yaml \
+#     -o ../results/nemotron-labs-3-puzzle-75b-nvfp4-aeon7.json
+#   lmswitch off nemotron-labs-3-puzzle-75b-nvfp4-aeon7
+
+series:
+  id: nemotron-labs-3-puzzle-75b-nvfp4-aeon7
+  model: Nemotron-Labs-3-Puzzle-75B-A9B
+  params_b: 75                            # total; ~9.3B active (MoE)
+  quant: NVFP4 + MTP                      # label the as-served stack: NVFP4 mixed + MTP spec-decode
+  backend: vLLM 0.23 (AEON)
+  status: measured
+  weights_gb: 49.9                        # from lmswitch list; 75.3B params × NVFP4 ≈ 49.9 GB
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/nemotron-labs-3-puzzle-75b-nvfp4-aeon7
+  config:
+    checkpoint: nvidia/NVIDIA-Nemotron-Labs-3-Puzzle-75B-A9B-NVFP4
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    quantization: modelopt_mixed (NVFP4)
+    attention_backend: flashinfer
+    kv_cache_dtype: fp8
+    kv_cache_memory: explicit (GPU mem × util)
+    speculative: MTP, 3 tokens
+    moe_backend: flashinfer_cutlass (mixed-precision MoE; marlin/triton rejected per-layer)
+    nvfp4_gemm_backend: marlin (env var VLLM_NVFP4_GEMM_BACKEND — for NVFP4 GEMM ops)
+    mamba_backend: flashinfer
+    max_num_seqs: 64
+    max_model_len: 32768
+    max_num_batched_tokens: 16384
+    cuda_graphs: true (if AEON enables)
+    chunked_prefill: true
+    async_scheduling: true
+    prefix_caching: "on (defeated by unique prompts)"
+    load_format: auto
+    note: "Hybrid Mamba2-Transformer LatentMoE; 75.3B total / 9.3B active; largest MoE benched on Spark"
+
+engine:
+  base_url: http://localhost:8243         # harness runs on the Spark -> localhost
+  model: nemotron-labs-3-puzzle-75b-nvfp4-aeon7   # MUST equal the bench yaml's served-model-name (its filename id)
+  api_key: dummy
+  extra_body:
+    # vLLM honours these to force exactly output_tokens; the harness also counts the
+    # actual completion_tokens from usage, so it's correct even if a backend ignores them.
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  # max_num_seqs is 64; sweep goes up to that ceiling.
+  # Note: at N > 12 (daily-driver ceiling), expect throughput to flatten as KV cache
+  # pressure increases on the 9.3B active-parameter MoE engine.
+  concurrencies: [1, 2, 4, 8, 12, 16, 24, 32, 48, 64]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

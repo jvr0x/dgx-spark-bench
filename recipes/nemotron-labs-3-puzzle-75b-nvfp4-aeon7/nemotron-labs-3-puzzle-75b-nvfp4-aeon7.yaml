@@ -1,0 +1,60 @@
+# lmswitch BENCH PROFILE of Nemotron-Labs-3-Puzzle-75B-A9B NVFP4 via vLLM (AEON image).
+# Hybrid Mamba2-Transformer LatentMoE, 75.3B total / 9.3B active params.
+# Quantized NVFP4 weights with fp8 KV cache, MTP×3 speculative decoding.
+# ~40 tok/s solo, scales to ~75 tok/s aggregate at 4 concurrent sequences.
+# moe-backend flashinfer_cutlass — REQUIRED: checkpoint is mixed-precision MoE
+# (BF16 + NVFP4 layers); only flashinfer_cutlass supports both.
+runtime: vllm
+model: "nvidia/NVIDIA-Nemotron-Labs-3-Puzzle-75B-A9B-NVFP4"
+port: 8243
+ctx: 32768
+display_name: "Nemotron-Labs-3-Puzzle-75B NVFP4 [BENCH]"
+
+# IMAGE: AEON's vLLM 0.23 ultimate build for GB10/sm_121a with Mamba2 + FlashInfer CUTLASS.
+# ENTRYPOINT is /bin/bash (not vllm serve).
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+entrypoint: "vllm serve"
+
+# GB10/sm_121a env for the AEON build.
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+  NVIDIA_TF32_OVERRIDE: "1"
+  TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: "1"
+  VLLM_NVFP4_GEMM_BACKEND: "marlin"
+
+# gpu-memory-utilization 0.85 — leaves headroom for KV cache + host overhead.
+# Never exceed 0.85 on GB10's 128 GB unified pool.
+gpu_memory_utilization: 0.85
+
+# Bench needs high concurrency to measure scaling; sweep goes to 64.
+max_num_seqs: 64
+
+load_format: "auto"
+enforce_eager: false  # allow CUDA graphs (marlin+graphs livelock avoided on this image)
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "nemotron_v3"
+trust_remote_code: true
+
+# Flags from joeynyc's recipe + AEON's mandatory moe_backend fix.
+# --moe-backend triton is required for AEON vLLM (marlin rejected for unquantized MoE).
+extra_args:
+  - "--mamba-backend"
+  - "flashinfer"
+  - "--async-scheduling"
+  - "--attention-backend"
+  - "flashinfer"
+  - "--speculative-config"
+  - '{"method":"mtp","num_speculative_tokens":3}'
+  - "--enable-auto-tool-choice"
+  - "--enable-prefix-caching"
+  - "--max-num-batched-tokens"
+  - "16384"
+  - "--max-model-len"
+  - "32768"
+  - "--kv-cache-dtype"
+  - "fp8"
+  - "--moe-backend"
+  - "flashinfer_cutlass"
+  - "--enable-chunked-prefill"
