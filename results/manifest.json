@@ -24,6 +24,8 @@
     "qwen3.6-35b-heretic-dflash-bench.json",
     "nex-n2-pro-iq1m-llamacpp.json",
     "nemotron-labs-3-puzzle-75b-nvfp4-aeon7.json",
-    "nemotron-3-super-nvfp4-vllm.json"
+    "nemotron-3-super-nvfp4-vllm.json",
+    "qwen3.6-27b-nvfp4-unsloth.json",
+    "qwen3.6-35b-nvfp4-unsloth-fast.json"
   ]
 }
