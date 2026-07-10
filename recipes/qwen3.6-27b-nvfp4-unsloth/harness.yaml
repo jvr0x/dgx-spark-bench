@@ -1,0 +1,66 @@
+# Harness run config for the qwen3.6-27b-nvfp4-unsloth recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8221.
+#
+# NOTE: bench-profile yaml is "qwen3.6-27b-nvfp4-unsloth-bench.yaml" (served-model-name
+# qwen3.6-27b-nvfp4-unsloth-bench) — deliberately suffixed so it doesn't collide with the
+# daily-driver's "qwen3.6-27b-nvfp4-unsloth.yaml" (port 8128) in lmswitch ai-models/.
+#
+#   lmswitch on qwen3.6-27b-nvfp4-unsloth-bench       # wait for "Ready on port 8221"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/qwen3.6-27b-nvfp4-unsloth/harness.yaml \
+#     -o ../results/qwen3.6-27b-nvfp4-unsloth.json
+#   lmswitch off qwen3.6-27b-nvfp4-unsloth-bench
+
+series:
+  id: qwen3.6-27b-nvfp4-unsloth
+  model: Qwen3.6-27B-NVFP4
+  params_b: 27
+  quant: NVFP4-mixed (dense hybrid)
+  backend: vLLM 0.23 (AEON)
+  status: measured
+  weights_gb: 20.4
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-27b-nvfp4-unsloth
+  config:
+    checkpoint: /home/jvr0x/models/unsloth/Qwen3.6-27B-NVFP4
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    quantization: modelopt_mixed (NVFP4)
+    attention_backend: flashinfer
+    kv_cache_dtype: fp8
+    kv_cache_memory: 64 GiB (explicit)
+    speculative: MTP (2 tokens, triton backend)
+    max_num_seqs: 64
+    max_model_len: 32768
+    max_num_batched_tokens: 8192
+    cuda_graphs: true
+    chunked_prefill: true
+    async_scheduling: false
+    prefix_caching: "on (defeated by unique prompts)"
+    load_format: fastsafetensors
+    vision_tower: "disabled (limit_mm_per_prompt: {image:0, video:0})"
+
+engine:
+  base_url: http://localhost:8221
+  model: qwen3.6-27b-nvfp4-unsloth-bench
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

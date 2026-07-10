@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.6-35b-nvfp4-unsloth-fast-2026-07-10T19:51:36Z",
+    "timestamp": "2026-07-10T19:51:36Z",
+    "harness_version": "0.1.0",
+    "git_commit": "85c9a41",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.6-35b-nvfp4-unsloth-fast",
+      "model": "Qwen3.6-35B-A3B-NVFP4-Fast",
+      "params_b": 35,
+      "quant": "NVFP4-mixed (MoE hybrid)",
+      "backend": "vLLM 0.23 (AEON)",
+      "status": "measured",
+      "weights_gb": 21.9,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-nvfp4-unsloth-fast",
+      "config": {
+        "checkpoint": "/home/jvr0x/models/unsloth/Qwen3.6-35B-A3B-NVFP4-Fast",
+        "image": "ghcr.io/aeon-7/aeon-vllm-ultimate:latest",
+        "quantization": "modelopt_mixed (NVFP4)",
+        "attention_backend": "flashinfer",
+        "kv_cache_dtype": "fp8",
+        "kv_cache_memory": "32 GiB (explicit)",
+        "speculative": "MTP (2 tokens, MoE triton backend)",
+        "max_num_seqs": 64,
+        "max_model_len": 32768,
+        "max_num_batched_tokens": 8192,
+        "cuda_graphs": true,
+        "chunked_prefill": true,
+        "async_scheduling": true,
+        "prefix_caching": "on (defeated by unique prompts)",
+        "load_format": "fastsafetensors",
+        "moe_backend": "triton"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 85.3,
+          "per_session_tok_s": 91.1,
+          "ttft_ms": {
+            "p50": 185,
+            "p95": 187,
+            "p99": 188
+          },
+          "itl_ms": {
+            "p50": 28.1,
+            "p95": 29.0,
+            "p99": 29.4
+          },
+          "samples": 60
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 136.5,
+          "per_session_tok_s": 72.9,
+          "ttft_ms": {
+            "p50": 215,
+            "p95": 218,
+            "p99": 219
+          },
+          "itl_ms": {
+            "p50": 34.0,
+            "p95": 35.6,
+            "p99": 37.8
+          },
+          "samples": 96
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 180.6,
+          "per_session_tok_s": 47.6,
+          "ttft_ms": {
+            "p50": 250,
+            "p95": 336,
+            "p99": 357
+          },
+          "itl_ms": {
+            "p50": 51.1,
+            "p95": 53.6,
+            "p99": 159.1
+          },
+          "samples": 127
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 304.4,
+          "per_session_tok_s": 39.9,
+          "ttft_ms": {
+            "p50": 290,
+            "p95": 489,
+            "p99": 564
+          },
+          "itl_ms": {
+            "p50": 57.2,
+            "p95": 166.5,
+            "p99": 170.0
+          },
+          "samples": 214
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 413.9,
+          "per_session_tok_s": 27.9,
+          "ttft_ms": {
+            "p50": 446,
+            "p95": 647,
+            "p99": 837
+          },
+          "itl_ms": {
+            "p50": 77.6,
+            "p95": 185.8,
+            "p99": 282.5
+          },
+          "samples": 291
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 560.4,
+          "per_session_tok_s": 18.8,
+          "ttft_ms": {
+            "p50": 737,
+            "p95": 1195,
+            "p99": 1315
+          },
+          "itl_ms": {
+            "p50": 109.0,
+            "p95": 308.2,
+            "p99": 410.0
+          },
+          "samples": 394
+        }
+      ]
+    }
+  ]
+}

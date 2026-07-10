@@ -1,0 +1,48 @@
+# lmswitch BENCH PROFILE of qwen3.6-35b-nvfp4-unsloth-fast — local NVFP4 MoE hybrid.
+#
+# IDENTICAL to the nvidia hub flagship config except:
+#   model:                  nvidia/qwen3.6-35b-a3b-nvfp4 -> local unsloth path
+#   port:                   8222 (dedicated bench port)
+#   kv-cache-memory-bytes:  32 GiB (same as nvidia hub — MoE active params ~= 3B)
+#
+# This is the MoE variant with MTP speculative decoding enabled.
+# "Fast" suffix = local unsloth build with potential optimizations.
+#
+# Filename id = served-model-name = "qwen3.6-35b-nvfp4-fast".
+# Place in your lmswitch ai-models/, then:
+#   lmswitch on qwen3.6-35b-nvfp4-fast
+
+runtime: vllm
+model: "/home/jvr0x/models/unsloth/Qwen3.6-35B-A3B-NVFP4-Fast"
+port: 8222
+ctx: 32768
+display_name: "Qwen3.6-35B-A3B NVFP4 Fast (Unsloth) [BENCH]"
+
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+entrypoint: "vllm serve"
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+
+gpu_memory_utilization: 0.5        # bench knob — KV is sized by --kv-cache-memory-bytes
+max_num_seqs: 64                   # bench knob — >= sweep ceiling
+tool_call_parser: "qwen3_xml"
+reasoning_parser: "qwen3"
+attention_backend: "flashinfer"
+load_format: "fastsafetensors"
+trust_remote_code: true
+enforce_eager: false               # as-served: CUDA graphs on
+
+extra_args:
+  - "--kv-cache-memory-bytes"
+  - "34359738368"                  # 32 GiB, explicit — bypasses the broken graph-mem estimator
+  - "--kv-cache-dtype"
+  - "fp8"
+  - "--max-num-batched-tokens"
+  - "8192"
+  - "--enable-chunked-prefill"
+  - "--async-scheduling"
+  - "--enable-prefix-caching"      # harmless here — the harness sends unique prompts so it never hits
+  - "--speculative-config"
+  - '{"method":"mtp","num_speculative_tokens":2,"moe_backend":"triton"}'

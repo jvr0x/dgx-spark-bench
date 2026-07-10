@@ -1,0 +1,55 @@
+# lmswitch BENCH PROFILE of qwen3.6-27b-nvfp4-unsloth — local NVFP4 dense hybrid VLM.
+#
+# IDENTICAL to the nvidia hub variant bench profile except:
+#   model:                  nvidia/Qwen3.6-27B-NVFP4 -> local unsloth path
+#   load_format:            fastsafetensors (same)
+#   port:                   8221 (dedicated bench port)
+#   speculative tokens:     3 -> 2 (per unsloth HF docs)
+#
+# This is a VLM checkpoint (vision tower present, disabled via limit_mm_per_prompt).
+# Has MTP spec-decode — enabled below.
+#
+# NOTE: filename deliberately suffixed "-bench" — the daily-driver config in this
+# same recipe dir is also served-model-name "qwen3.6-27b-nvfp4-unsloth" on a
+# different file; without the suffix both profiles collide on one filename/id
+# in lmswitch ai-models/ and copying this one in would silently clobber the
+# daily driver (or vice versa).
+#
+# Filename id = served-model-name = "qwen3.6-27b-nvfp4-unsloth-bench".
+# Place in your lmswitch ai-models/, then:
+#   lmswitch on qwen3.6-27b-nvfp4-unsloth-bench
+
+runtime: vllm
+model: "/home/jvr0x/models/unsloth/Qwen3.6-27B-NVFP4"
+port: 8221
+ctx: 32768
+display_name: "Qwen3.6-27B NVFP4 (Unsloth) [BENCH]"
+
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+entrypoint: "vllm serve"
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+
+gpu_memory_utilization: 0.3
+max_num_seqs: 64
+load_format: "fastsafetensors"
+trust_remote_code: true
+enforce_eager: false
+tool_call_parser: "qwen3_xml"
+reasoning_parser: "qwen3"
+attention_backend: "flashinfer"
+limit_mm_per_prompt: '{"image":0,"video":0}'
+
+extra_args:
+  - "--kv-cache-memory-bytes"
+  - "68719476736"                  # 64 GiB — explicit KV cap (bypasses broken AEON estimator)
+  - "--kv-cache-dtype"
+  - "fp8"
+  - "--max-num-batched-tokens"
+  - "8192"
+  - "--enable-chunked-prefill"
+  - "--enable-prefix-caching"
+  - "--speculative-config"
+  - '{"method":"mtp","num_speculative_tokens":2,"moe_backend":"triton"}'

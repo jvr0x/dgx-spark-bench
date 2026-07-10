@@ -1,0 +1,62 @@
+# Harness run config for the qwen3.6-35b-nvfp4-unsloth-fast recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8222.
+#
+#   lmswitch on qwen3.6-35b-nvfp4-fast       # wait for "Ready on port 8222"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/qwen3.6-35b-nvfp4-unsloth-fast/harness.yaml \
+#     -o ../results/qwen3.6-35b-nvfp4-unsloth-fast.json
+#   lmswitch off qwen3.6-35b-nvfp4-fast
+
+series:
+  id: qwen3.6-35b-nvfp4-unsloth-fast
+  model: Qwen3.6-35B-A3B-NVFP4-Fast
+  params_b: 35                            # total; ~3B active (MoE)
+  quant: NVFP4-mixed (MoE hybrid)
+  backend: vLLM 0.23 (AEON)
+  status: measured
+  weights_gb: 21.9
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-nvfp4-unsloth-fast
+  config:
+    checkpoint: /home/jvr0x/models/unsloth/Qwen3.6-35B-A3B-NVFP4-Fast
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    quantization: modelopt_mixed (NVFP4)
+    attention_backend: flashinfer
+    kv_cache_dtype: fp8
+    kv_cache_memory: 32 GiB (explicit)
+    speculative: MTP (2 tokens, MoE triton backend)
+    max_num_seqs: 64
+    max_model_len: 32768
+    max_num_batched_tokens: 8192
+    cuda_graphs: true
+    chunked_prefill: true
+    async_scheduling: true
+    prefix_caching: "on (defeated by unique prompts)"
+    load_format: fastsafetensors
+    moe_backend: triton
+
+engine:
+  base_url: http://localhost:8222
+  model: qwen3.6-35b-nvfp4-fast
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
