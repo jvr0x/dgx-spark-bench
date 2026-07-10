@@ -13,7 +13,7 @@
 
 series:
   id: qwen3.6-27b-nvfp4-unsloth
-  model: Qwen3.6-27B-NVFP4
+  model: Qwen3.6-27B-NVFP4 (Unsloth)
   params_b: 27
   quant: NVFP4-mixed (dense hybrid)
   backend: vLLM 0.23 (AEON)

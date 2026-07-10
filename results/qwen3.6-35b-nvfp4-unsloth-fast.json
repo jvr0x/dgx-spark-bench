@@ -36,7 +36,7 @@
   "series": [
     {
       "id": "qwen3.6-35b-nvfp4-unsloth-fast",
-      "model": "Qwen3.6-35B-A3B-NVFP4-Fast",
+      "model": "Qwen3.6-35B-A3B-NVFP4-Fast (Unsloth)",
       "params_b": 35,
       "quant": "NVFP4-mixed (MoE hybrid)",
       "backend": "vLLM 0.23 (AEON)",
