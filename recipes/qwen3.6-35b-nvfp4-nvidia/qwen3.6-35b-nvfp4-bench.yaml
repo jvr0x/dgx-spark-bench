@@ -58,4 +58,4 @@ extra_args:
   - "--async-scheduling"
   - "--enable-prefix-caching"      # harmless here — the harness sends unique prompts so it never hits
   - "--speculative-config"
-  - '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}'
+  - '{"method":"mtp","num_speculative_tokens":2,"moe_backend":"triton"}'

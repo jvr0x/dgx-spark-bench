@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import statistics
 import subprocess
 import time
@@ -114,6 +115,58 @@ def percentile(xs: list[float], p: float) -> float:
     lo = int(k)
     hi = min(lo + 1, len(s) - 1)
     return s[lo] + (s[hi] - s[lo]) * (k - lo)
+
+
+def nvidia_smi_stats() -> dict[str, object] | None:
+    """Reads the first GPU's temperature (°C) and power (W) from ``nvidia-smi``.
+
+    Queries ``index,temperature.gpu,power.draw,power.limit`` via the CSV formatter
+    and returns a dict with keys ``gpu_index``, ``temperature_c``, ``power_draw_w``,
+    and ``power_limit_w`` (``None`` when the underlying value is ``[N/A]``).
+
+    Returns ``None`` when ``nvidia-smi`` is unavailable or returns no data rows.
+    """
+    try:
+        proc = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index,temperature.gpu,power.draw,power.limit",
+             "--format=csv,noheader"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+
+    if proc.returncode != 0:
+        return None
+
+    lines = [ln.strip() for ln in proc.stdout.strip().splitlines() if ln.strip()]
+    if not lines:
+        return None
+
+    # Parse the first row: "0, 61, 39.04 W, [N/A]"
+    parts = [p.strip() for p in lines[0].split(",")]
+    if len(parts) < 4:
+        return None
+
+    def _int_or_none(val: str) -> int | None:
+        """Parse an integer, stripping a trailing `` W`` and returning ``None`` for ``[N/A]``."""
+        if val == "[N/A]":
+            return None
+        val = val.replace(" W", "").strip()
+        return int(val)
+
+    def _float_or_none(val: str) -> float | None:
+        """Parse a float, stripping the trailing `` W`` and returning ``None`` for ``[N/A]``."""
+        if val == "[N/A]":
+            return None
+        m = re.match(r"([0-9]*\.?[0-9]+)\s*W", val)
+        return float(m.group(1)) if m else None
+
+    return {
+        "gpu_index": _int_or_none(parts[0]),
+        "temperature_c": _int_or_none(parts[1]),
+        "power_draw_w": _float_or_none(parts[2]),
+        "power_limit_w": _int_or_none(parts[3]),
+    }
 
 
 async def stream_request(client: httpx.AsyncClient, target: EngineTarget, workload: Workload,
@@ -223,7 +276,7 @@ async def run_point(target: EngineTarget, workload: Workload, n: int, sweep: Swe
     all_itls = [x for r in in_win for x in r.itls_ms]
     failures = sum(1 for r in results if not r.ok)
 
-    return {
+    point: dict[str, Any] = {
         "concurrency": n,
         "agg_tok_s": round(total_tokens / sweep.measure_s, 1),
         "per_session_tok_s": round(statistics.mean(rates), 1) if rates else 0.0,
@@ -234,6 +287,16 @@ async def run_point(target: EngineTarget, workload: Workload, n: int, sweep: Swe
         "samples": len(in_win),
         **({"_failures": failures} if failures else {}),
     }
+
+    # Capture GPU thermal/power snapshot after the point completes (while the GPU is still hot).
+    smi = nvidia_smi_stats()
+    if smi:
+        point["gpu"] = {
+            "temperature_c": smi["temperature_c"],
+            "power_draw_w": smi["power_draw_w"],
+        }
+
+    return point
 
 
 def _git_commit() -> str:

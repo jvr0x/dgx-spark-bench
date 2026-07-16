@@ -28,7 +28,11 @@
             "bw_gbs": { "type": "number", "description": "Memory bandwidth in GB/s." },
             "fp4_tops": { "type": "number" },
             "driver": { "type": "string" },
-            "cuda": { "type": "string" }
+            "cuda": { "type": "string" },
+            "gpu_index": { "type": "integer", "description": "GPU index from nvidia-smi." },
+            "temperature_c": { "type": ["integer", "null"], "description": "GPU temperature in °C from nvidia-smi (None if unavailable)." },
+            "power_draw_w": { "type": ["number", "null"], "description": "GPU power draw in watts from nvidia-smi (None if unavailable)." },
+            "power_limit_w": { "type": ["integer", "null"], "description": "GPU power limit in watts from nvidia-smi (None if unavailable)." }
           }
         },
         "workload": {
@@ -104,7 +108,15 @@
                 },
                 "anchor": { "type": "boolean", "description": "True if this exact point is backed by a real measurement (vs interpolated/projected)." },
                 "samples": { "type": "integer", "description": "Number of completed requests aggregated into this point." },
-                "_failures": { "type": "integer", "description": "Requests that errored at this point (diagnostic; healthy runs omit it)." }
+                "_failures": { "type": "integer", "description": "Requests that errored at this point (diagnostic; healthy runs omit it)." },
+                "gpu": {
+                  "type": "object",
+                  "description": "GPU thermal/power snapshot captured after this concurrency point.",
+                  "properties": {
+                    "temperature_c": { "type": ["integer", "null"], "description": "GPU temperature in °C (None if nvidia-smi unavailable)." },
+                    "power_draw_w": { "type": ["number", "null"], "description": "GPU power draw in watts (None if nvidia-smi unavailable)." }
+                  }
+                }
               }
             }
           }

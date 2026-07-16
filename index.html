@@ -217,6 +217,13 @@
           <button id="yLog" aria-pressed="true">log</button>
         </div>
       </div>
+      <div>
+        <div class="ctrl-label">Temperature unit</div>
+        <div class="seg" role="group" aria-label="Temperature unit">
+          <button id="tempC" aria-pressed="true">°C</button>
+          <button id="tempF" aria-pressed="false">°F</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -227,6 +234,8 @@
     <figure><figcaption><span class="n">02</span><span class="t">Aggregate throughput vs concurrency</span><span class="ax">x: sessions (log) · y: agg tok/s</span></figcaption><div class="chart" id="c2"></div><p class="hint">Total tok/s across all sessions. The knee is where packing more sessions stops paying off — curves end at each config's KV-cache capacity ceiling.</p></figure>
     <figure><figcaption><span class="n">03</span><span class="t">Per-session throughput vs concurrency</span><span class="ax">x: sessions (log) · y: tok/s / session</span></figcaption><div class="chart" id="c3"></div><p class="hint">What one user feels. Falls as you batch more — the cost of higher aggregate throughput.</p></figure>
     <figure><figcaption><span class="n">04</span><span class="t">TTFT tail vs concurrency</span><span class="ax">x: sessions (log) · y: TTFT ms</span></figcaption><div class="chart" id="c4"></div><p class="hint">Time-to-first-token at the focused percentile, all visible configs. Switch to p99 to see whose tail blows up first.</p></figure>
+    <figure><figcaption><span class="n">05</span><span class="t">GPU temperature vs concurrency</span><span class="ax">x: sessions (log) · y: °C</span></figcaption><div class="chart" id="c5"></div><p class="hint">GPU thermal load as concurrency scales. Watch for the knee where thermal throttling may kick in.</p></figure>
+    <figure><figcaption><span class="n">06</span><span class="t">GPU power draw vs concurrency</span><span class="ax">x: sessions (log) · y: watts</span></figcaption><div class="chart" id="c6"></div><p class="hint">Power envelope as concurrency scales. Shows how much headroom remains before hitting the TDP wall.</p></figure>
   </section>
 
   <section class="tablewrap hidden" id="tablewrap">
@@ -293,6 +302,8 @@ function seriesToCfg(s, run, idx){
       p50: p.ttft_ms.p50, p95: p.ttft_ms.p95, p99: p.ttft_ms.p99,
       itl: p.itl_ms ? p.itl_ms.p50 : 1000 / p.per_session_tok_s,
       anchor: !!p.anchor,
+      temp: p.gpu?.temperature_c ?? null,
+      power: p.gpu?.power_draw_w ?? null,
     })),
   };
 }
@@ -315,9 +326,10 @@ async function loadResults(){
 /* ---------- state ---------- */
 const state = {
   visible:new Set(),
-  sla:500, view:"charts", focus:"p95", yscale:"log",
+  sla:500, view:"charts", focus:"p95", yscale:"log", tempUnit:"C",
   sort:{key:"agg",dir:-1}
 };
+function cToF(c){return c==null?null:Math.round(c*9/5+32);}
 
 /* ---------- active-set color slots (color follows the entity, never cycles) ---------- */
 const MAX_ACTIVE = PALETTE.length;
@@ -428,9 +440,11 @@ function lineChart(host,{xs,xAcc,yAcc,xType,yType,yLabel,xLabel,series,sla,smin}
   // points (drawn after lines)
   series.forEach(s=>s.pts.forEach(p=>{
     const cx=X(xAcc(p)).toFixed(1),cy=Y(yAcc(p)).toFixed(1);
+    const t=p.temp!=null?` ${p.temp}`:"",pw=p.power!=null?` ${p.power.toFixed(0)}`:"";
     g+=`<circle class="pt ${p.anchor?"anchor":""}" cx="${cx}" cy="${cy}" r="${p.anchor?4.5:3.2}" fill="${s.color}"
       data-s="${s.label}" data-n="${p.n}" data-agg="${p.agg.toFixed(1)}" data-per="${p.per.toFixed(1)}"
-      data-p50="${p.p50.toFixed(0)}" data-p95="${p.p95.toFixed(0)}" data-p99="${p.p99.toFixed(0)}" data-anchor="${p.anchor}"/>`;
+      data-p50="${p.p50.toFixed(0)}" data-p95="${p.p95.toFixed(0)}" data-p99="${p.p99.toFixed(0)}"
+      data-temp="${p.temp??""}" data-power="${p.power??""}" data-anchor="${p.anchor}"/>`;
   }));
   // direct labels when few enough to stay clean (legend chips still carry full identity)
   if(series.length&&series.length<=4){
@@ -449,7 +463,11 @@ function fmt(v){if(v>=1000)return (v/1000).toFixed(v%1000?1:0)+"k";return v%1?v.
 
 /* ---------- renderers ---------- */
 function visibleCfg(){return CFG.filter(c=>state.visible.has(c.id));}
-function ser(cf,extra){return {label:`${cf.model} · ${cf.quant}/${cf.be}`,color:cf.color,proj:cf.st==="projected",pts:cf.points,...extra};}
+function ser(cf,extraGpu){
+  const base={label:`${cf.model} · ${cf.quant}/${cf.be}`,color:cf.color,proj:cf.st==="projected",pts:cf.points};
+  if(extraGpu) return {...base, pts:cf.points.map(p=>({...p,...extraGpu(p)}))};
+  return base;
+}
 
 function renderCharts(){
   const vc=visibleCfg();
@@ -462,6 +480,14 @@ function renderCharts(){
     xLabel:"CONCURRENT SESSIONS",yLabel:"TOK/S / SESSION"});
   lineChart(c4,{series:vc.map(c=>ser(c)),xAcc:p=>p.n,yAcc:p=>p[state.focus],xType:"log",yType,
     xLabel:"CONCURRENT SESSIONS",yLabel:state.focus.toUpperCase()+" TTFT (ms)"});
+  // GPU thermal/power — only render points that have gpu data
+  const gpuSer=vc.filter(c=>c.points.some(p=>p.temp!=null||p.power!=null))
+    .map(c=>ser(c,p=>({temp:p.temp,power:p.power})));
+  const yLabel5=state.tempUnit==="F"?"TEMP °F":"TEMP °C";
+  lineChart(c5,{series:gpuSer,xAcc:p=>p.n,yAcc:p=>state.tempUnit==="F"?cToF(p.temp):p.temp,xType:"log",yType:
+    "linear",yLabel:yLabel5});
+  lineChart(c6,{series:gpuSer,xAcc:p=>p.n,yAcc:p=>p.power,xType:"log",yType:
+    "linear",yLabel:"POWER W"});
 }
 
 function renderSqueeze(){
@@ -479,26 +505,31 @@ function renderSqueeze(){
     <div class="why">the squeeze — best feasible point under the latency budget</div>`;
 }
 
+function tempColLabel(){return state.tempUnit==="F"?"Temp °F":"Temp °C";}
 const COLS=[["model","Model","txt"],["quant","Quant","txt"],["be","Backend","txt"],
   ["n","N","n"],["agg","Agg tok/s","agg"],["per","tok/s/sess","per"],
-  ["p50","TTFT p50","p50"],["p95","TTFT p95","p95"],["p99","TTFT p99","p99"],["st","Source","st"]];
+  ["p50","TTFT p50","p50"],["p95","TTFT p95","p95"],["p99","TTFT p99","p99"],
+  ["temp","Temp °C","temp"],["power","Power W","power"],["st","Source","st"]];
+function tempVal(v){return v==null?null:(state.tempUnit==="F"?cToF(v):v);}
 function tableRows(){
   const rows=[];
   visibleCfg().forEach(cf=>cf.points.forEach(p=>rows.push({
     model:cf.model,quant:cf.quant,be:cf.be,st:cf.st,color:cf.color,anchor:p.anchor,
-    n:p.n,agg:p.agg,per:p.per,p50:p.p50,p95:p.p95,p99:p.p99})));
+    n:p.n,agg:p.agg,per:p.per,p50:p.p50,p95:p.p95,p99:p.p99,
+    temp:p.temp,power:p.power})));
   const {key,dir}=state.sort;
   rows.sort((a,b)=>{const av=a[key],bv=b[key];return (typeof av==="number"?av-bv:String(av).localeCompare(bv))*dir;});
   return rows;
 }
 function renderTable(){
-  const th=`<tr>${COLS.map(([k,l])=>`<th data-k="${k}">${l}${state.sort.key===k?(state.sort.dir<0?" ▾":" ▴"):""}</th>`).join("")}</tr>`;
+  const th=`<tr>${COLS.map(([k,l])=>`<th data-k="${k}">${k==="temp"?tempColLabel():l}${state.sort.key===k?(state.sort.dir<0?" ▾":" ▴"):""}</th>`).join("")}</tr>`;
   document.querySelector("#table thead").innerHTML=th;
   document.querySelector("#table tbody").innerHTML=tableRows().map(r=>`<tr>
     <td class="txt"><span class="sdot" style="background:${r.color}"></span>${r.model}</td>
     <td class="txt">${r.quant}</td><td class="txt">${r.be}</td>
     <td>${r.n}${r.anchor?" ◎":""}</td><td>${r.agg.toFixed(1)}</td><td>${r.per.toFixed(1)}</td>
     <td>${r.p50.toFixed(0)}</td><td>${r.p95.toFixed(0)}</td><td>${r.p99.toFixed(0)}</td>
+    <td>${tempVal(r.temp)!=null?tempVal(r.temp):"-"}</td><td>${r.power!=null?r.power.toFixed(0):"-"}</td>
     <td><span class="badge ${r.st==="measured"?"m":"p"}">${r.st}</span></td></tr>`).join("");
 }
 
@@ -573,6 +604,13 @@ function wire(){
       document.getElementById("yLog").setAttribute("aria-pressed",mode==="log");
       if(state.view==="charts")renderCharts();};
   });
+  [["tempC","C"],["tempF","F"]].forEach(([id,mode])=>{
+    document.getElementById(id).onclick=()=>{state.tempUnit=mode;
+      document.getElementById("tempC").setAttribute("aria-pressed",mode==="C");
+      document.getElementById("tempF").setAttribute("aria-pressed",mode==="F");
+      if(state.view==="charts")renderCharts();
+      if(state.view==="table")renderTable();};
+  });
   const views={charts:["vCharts","charts",renderCharts],table:["vTable","tablewrap",renderTable],config:["vConfig","configwrap",renderConfig]};
   Object.entries(views).forEach(([name,[btn]])=>{
     document.getElementById(btn).onclick=()=>{
@@ -590,11 +628,15 @@ function wire(){
   const tip=document.getElementById("tip");
   document.getElementById("charts").addEventListener("mouseover",e=>{
     const c=e.target.closest(".pt");if(!c)return;const d=c.dataset;
+    let extra="";
+    if(d.temp){const tv=state.tempUnit==="F"?cToF(+d.temp):d.temp;extra+=`<div class="r"><span>temp</span><b>${tv}°${state.tempUnit}</b></div>`;}
+    if(d.power) extra+=`<div class="r"><span>power</span><b>${d.power} W</b></div>`;
     tip.innerHTML=`<div class="h">${d.s}</div>
       <div class="r"><span>sessions</span><b>${d.n}${d.anchor==="true"?" ◎ measured":""}</b></div>
       <div class="r"><span>aggregate</span><b>${d.agg} tok/s</b></div>
       <div class="r"><span>per session</span><b>${d.per} tok/s</b></div>
-      <div class="r"><span>TTFT p50/p95/p99</span><b>${d.p50}/${d.p95}/${d.p99} ms</b></div>`;
+      <div class="r"><span>TTFT p50/p95/p99</span><b>${d.p50}/${d.p95}/${d.p99} ms</b></div>`
+      +extra;
     tip.style.opacity=1;});
   document.getElementById("charts").addEventListener("mousemove",e=>{
     tip.style.left=Math.min(e.clientX+14,innerWidth-250)+"px";tip.style.top=(e.clientY+14)+"px";});

@@ -22,7 +22,7 @@ series:
     attention_backend: flashinfer
     kv_cache_dtype: fp8
     kv_cache_memory: 32 GiB (explicit)
-    speculative: MTP, 3 tokens, triton MoE
+    speculative: MTP, 2 tokens, triton MoE
     max_num_seqs: 64
     max_model_len: 32768
     max_num_batched_tokens: 8192
