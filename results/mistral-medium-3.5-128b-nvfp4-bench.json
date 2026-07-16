@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "mistral-medium-3.5-128b-nvfp4-bench-2026-07-16T14:55:36Z",
+    "timestamp": "2026-07-16T14:55:36Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b1d3187",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "warmup_s": 120,
+      "measure_s": 360,
+      "request_timeout_s": 600
+    }
+  },
+  "series": [
+    {
+      "id": "mistral-medium-3.5-128b-nvfp4-bench",
+      "model": "Mistral-Medium-3.5-128B",
+      "params_b": 128,
+      "quant": "NVFP4",
+      "backend": "vLLM",
+      "status": "measured",
+      "weights_gb": 89,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/mistral-medium-3.5-128b-nvfp4-bench",
+      "config": {
+        "checkpoint": "nvidia/Mistral-Medium-3.5-128B-NVFP4",
+        "runtime": "vLLM",
+        "quantization": "NVFP4 (modelopt, auto-detected)",
+        "flash_attention": true,
+        "kv_cache_dtype": "fp8",
+        "ctx": 16384,
+        "max_num_seqs": 16,
+        "speculative": "NONE",
+        "note": "dense 128B, barely-fits class \u2014 ~2.5 tok/s/stream expected; slow-model sweep timing (see sweep block)"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 2.8,
+          "per_session_tok_s": 2.7,
+          "ttft_ms": {
+            "p50": 1047,
+            "p95": 1473,
+            "p99": 1533
+          },
+          "itl_ms": {
+            "p50": 365.9,
+            "p95": 1462.9,
+            "p99": 1473.0
+          },
+          "samples": 4,
+          "gpu": {
+            "temperature_c": 73,
+            "power_draw_w": 40.62
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 5.7,
+          "per_session_tok_s": 2.7,
+          "ttft_ms": {
+            "p50": 1400,
+            "p95": 1407,
+            "p99": 1408
+          },
+          "itl_ms": {
+            "p50": 368.0,
+            "p95": 1471.9,
+            "p99": 1482.0
+          },
+          "samples": 8,
+          "gpu": {
+            "temperature_c": 67,
+            "power_draw_w": 40.03
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 8.5,
+          "per_session_tok_s": 2.7,
+          "ttft_ms": {
+            "p50": 2724,
+            "p95": 2737,
+            "p99": 2737
+          },
+          "itl_ms": {
+            "p50": 374.7,
+            "p95": 1496.9,
+            "p99": 1508.7
+          },
+          "samples": 12,
+          "gpu": {
+            "temperature_c": 68,
+            "power_draw_w": 42.34
+          }
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 17.1,
+          "per_session_tok_s": 2.7,
+          "ttft_ms": {
+            "p50": 2977,
+            "p95": 4345,
+            "p99": 4346
+          },
+          "itl_ms": {
+            "p50": 372.7,
+            "p95": 1489.7,
+            "p99": 1504.6
+          },
+          "samples": 24,
+          "gpu": {
+            "temperature_c": 64,
+            "power_draw_w": 39.77
+          }
+        }
+      ]
+    }
+  ]
+}

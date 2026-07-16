@@ -1,0 +1,48 @@
+# lmswitch BENCH PROFILE of Mistral-Medium-3.5-128B NVFP4 — dense 128B via vLLM.
+#
+# "Barely fits" class: 89G weights in the 128G unified pool — run SOLO, stop the
+# always-on llama-servers first. Biggest dense model in the corpus; anchors the
+# top of the dense roofline table (273/89 ~= 3.1 tok/s ceiling single-stream).
+# Stock nightly image, minimal flags (mirrors the miaai pattern that loads
+# nvidia NVFP4 checkpoints via auto-detected modelopt quant).
+# NOTE: tekken.json/params.json in the checkpoint dir are renamed to *.disabled —
+# transformers v5 otherwise picks its MistralCommonBackend tokenizer, which this
+# vLLM nightly crashes on (`is_fast` AttributeError). The HF tokenizer.json works.
+#
+# Filename id = served-model-name = "mistral-medium-3.5-128b-nvfp4-bench".
+
+runtime: vllm
+model: "nvidia/Mistral-Medium-3.5-128B-NVFP4"
+port: 8242
+# ctx 16384: bench workload needs ~1.3K tok/seq; big ctx would pre-reserve KV
+# this box cannot spare next to 89G of weights.
+ctx: 16384
+display_name: "Mistral-Medium-3.5-128B NVFP4 [BENCH]"
+
+image: "vllm/vllm-openai:nightly"
+# INCIDENT (2026-07-15): load_format: fastsafetensors hard-OOM'd the whole
+# box TWICE at this scale (NVRM "Out of memory" allocation failures, kernel
+# oom_reaper, full reboot both times) — first at gpu_memory_utilization=0.85,
+# then again at 0.78. Lowering gpu_memory_utilization does NOT fix this: that
+# knob only governs the post-load KV-cache reservation, not the loader's own
+# transient peak — and 0.78 was already close to the floor (89G weights alone
+# need ~0.74 just to fit). fastsafetensors is proven fine on smaller NVFP4
+# checkpoints in this corpus (27B/35B), but this is the first 89G attempt
+# with it, and its parallel-staging behavior appears to spike well past
+# steady-state at this size on this unified-memory box. DO NOT re-enable it
+# on this recipe without testing on a box with headroom to spare.
+# Reverted to vLLM's default loader (no load_format override) — the same
+# well-tested path every other large model in this corpus uses successfully.
+gpu_memory_utilization: 0.78
+max_num_seqs: 16                    # >= sweep ceiling (8), headroom for warmup overlap
+attention_backend: "flashinfer"
+trust_remote_code: true
+enforce_eager: false
+
+extra_args:
+  - "--kv-cache-dtype"
+  - "fp8"
+  - "--max-num-batched-tokens"
+  - "8192"
+  - "--enable-chunked-prefill"
+  - "--enable-prefix-caching"       # harmless — the harness sends unique prompts

@@ -1,0 +1,58 @@
+# Harness run config for the mistral-medium-3.5-128b-nvfp4-bench recipe.
+# Runs ON the Spark, against the bench-profile served by lmswitch on :8242.
+#
+#   lmswitch on mistral-medium-3.5-128b-nvfp4-bench   # ~10 min load, run SOLO
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/mistral-medium-3.5-128b-nvfp4-bench/harness.yaml \
+#     -o ../results/mistral-medium-3.5-128b-nvfp4-bench.json
+#   lmswitch off mistral-medium-3.5-128b-nvfp4-bench
+
+series:
+  id: mistral-medium-3.5-128b-nvfp4-bench
+  model: Mistral-Medium-3.5-128B
+  params_b: 128
+  quant: NVFP4
+  backend: vLLM
+  status: measured
+  weights_gb: 89
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/mistral-medium-3.5-128b-nvfp4-bench
+  config:
+    checkpoint: nvidia/Mistral-Medium-3.5-128B-NVFP4
+    runtime: vLLM
+    quantization: NVFP4 (modelopt, auto-detected)
+    flash_attention: true
+    kv_cache_dtype: fp8
+    ctx: 16384
+    max_num_seqs: 16
+    speculative: NONE
+    note: "dense 128B, barely-fits class — ~2.5 tok/s/stream expected; slow-model sweep timing (see sweep block)"
+
+engine:
+  base_url: http://localhost:8242
+  model: mistral-medium-3.5-128b-nvfp4-bench
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8]
+  # Slow-model timing (deviates from the 30/180 suite default, recorded in run.sweep):
+  # one request takes ~100-200s at these speeds, so warmup must fit a full request
+  # and the window must fit 2+ or rows clip to zero (the gemma N=32 lesson).
+  warmup_s: 120
+  measure_s: 360
+  request_timeout_s: 600
