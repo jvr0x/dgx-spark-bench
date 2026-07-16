@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "run": {
-    "id": "gemma-4-12b-it-llamacpp-2026-07-03T16:44:10Z",
-    "timestamp": "2026-07-03T16:44:10Z",
+    "id": "gemma-4-12b-it-llamacpp-2026-07-16T19:39:23Z",
+    "timestamp": "2026-07-16T19:39:23Z",
     "harness_version": "0.1.0",
-    "git_commit": "e421a3d",
+    "git_commit": "b0e3e47",
     "hardware": {
       "name": "DGX Spark",
       "soc": "GB10 Grace Blackwell",
@@ -62,98 +62,122 @@
         {
           "concurrency": 1,
           "agg_tok_s": 25.6,
-          "per_session_tok_s": 26.3,
+          "per_session_tok_s": 28.4,
           "ttft_ms": {
-            "p50": 703,
-            "p95": 706,
-            "p99": 707
+            "p50": 690,
+            "p95": 696,
+            "p99": 696
           },
           "itl_ms": {
-            "p50": 38.5,
-            "p95": 39.6,
-            "p99": 40.3
+            "p50": 35.6,
+            "p95": 36.5,
+            "p99": 37.5
           },
-          "samples": 18
+          "samples": 18,
+          "gpu": {
+            "temperature_c": 76,
+            "power_draw_w": 54.98
+          }
         },
         {
           "concurrency": 2,
-          "agg_tok_s": 42.7,
-          "per_session_tok_s": 25.1,
+          "agg_tok_s": 45.5,
+          "per_session_tok_s": 26.8,
           "ttft_ms": {
-            "p50": 1553,
-            "p95": 1573,
-            "p99": 1573
+            "p50": 1542,
+            "p95": 1630,
+            "p99": 1633
           },
           "itl_ms": {
-            "p50": 40.4,
-            "p95": 41.6,
-            "p99": 42.7
+            "p50": 37.8,
+            "p95": 39.0,
+            "p99": 40.2
           },
-          "samples": 30
+          "samples": 32,
+          "gpu": {
+            "temperature_c": 78,
+            "power_draw_w": 62.8
+          }
         },
         {
           "concurrency": 4,
-          "agg_tok_s": 62.6,
-          "per_session_tok_s": 18.8,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 19.8,
           "ttft_ms": {
-            "p50": 3121,
-            "p95": 3822,
-            "p99": 3927
+            "p50": 3039,
+            "p95": 3505,
+            "p99": 3526
           },
           "itl_ms": {
-            "p50": 52.6,
-            "p95": 56.4,
-            "p99": 63.7
+            "p50": 50.4,
+            "p95": 53.6,
+            "p99": 55.8
           },
-          "samples": 44
+          "samples": 48,
+          "gpu": {
+            "temperature_c": 84,
+            "power_draw_w": 75.67
+          }
         },
         {
           "concurrency": 8,
           "agg_tok_s": 68.3,
-          "per_session_tok_s": 11.1,
+          "per_session_tok_s": 11.3,
           "ttft_ms": {
-            "p50": 4423,
-            "p95": 6011,
-            "p99": 6625
+            "p50": 4239,
+            "p95": 5962,
+            "p99": 6060
           },
           "itl_ms": {
-            "p50": 83.5,
-            "p95": 88.5,
-            "p99": 426.5
+            "p50": 82.5,
+            "p95": 86.9,
+            "p99": 640.6
           },
-          "samples": 48
+          "samples": 48,
+          "gpu": {
+            "temperature_c": 84,
+            "power_draw_w": 74.14
+          }
         },
         {
           "concurrency": 16,
           "agg_tok_s": 91.0,
-          "per_session_tok_s": 6.9,
+          "per_session_tok_s": 7.3,
           "ttft_ms": {
-            "p50": 7961,
-            "p95": 11465,
-            "p99": 13010
+            "p50": 8080,
+            "p95": 11380,
+            "p99": 12599
           },
           "itl_ms": {
-            "p50": 117.5,
-            "p95": 128.4,
-            "p99": 1072.5
+            "p50": 111.6,
+            "p95": 123.1,
+            "p99": 1044.7
           },
-          "samples": 64
+          "samples": 64,
+          "gpu": {
+            "temperature_c": 74,
+            "power_draw_w": 52.76
+          }
         },
         {
           "concurrency": 32,
           "agg_tok_s": 91.0,
-          "per_session_tok_s": 3.5,
+          "per_session_tok_s": 3.6,
           "ttft_ms": {
-            "p50": 15451,
-            "p95": 26488,
-            "p99": 26767
+            "p50": 15801,
+            "p95": 26041,
+            "p99": 26309
           },
           "itl_ms": {
-            "p50": 198.6,
-            "p95": 1189.5,
-            "p99": 1919.0
+            "p50": 188.2,
+            "p95": 1177.2,
+            "p99": 1838.7
           },
-          "samples": 64
+          "samples": 64,
+          "gpu": {
+            "temperature_c": 73,
+            "power_draw_w": 51.08
+          }
         }
       ]
     }
