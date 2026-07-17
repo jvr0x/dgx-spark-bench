@@ -18,7 +18,7 @@ series:
   recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/nemotron-labs-3-puzzle-75b-nvfp4-aeon7
   config:
     checkpoint: nvidia/NVIDIA-Nemotron-Labs-3-Puzzle-75B-A9B-NVFP4
-    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1
     quantization: modelopt_mixed (NVFP4)
     attention_backend: flashinfer
     kv_cache_dtype: fp8

@@ -20,7 +20,7 @@ port: 8220
 ctx: 32768
 display_name: "Ornith-1.0-35B NVFP4 (AEON) [BENCH]"
 
-image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1"
 entrypoint: "vllm serve"
 env:
   TORCH_CUDA_ARCH_LIST: "12.1a"

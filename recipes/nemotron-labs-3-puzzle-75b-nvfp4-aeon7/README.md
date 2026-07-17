@@ -3,7 +3,7 @@
 Concurrency-throughput sweep of NVIDIA
 [`nvidia/NVIDIA-Nemotron-Labs-3-Puzzle-75B-A9B-NVFP4`](https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-3-Puzzle-75B-A9B-NVFP4)
 on a single DGX Spark (GB10): hybrid Mamba2 + LatentMoE + attention, **75.3B total / ~9.3B active**,
-served with **AEON-7** `ghcr.io/aeon-7/aeon-vllm-ultimate:latest`, MTP×3, fp8 KV cache.
+served with **AEON-7** `ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1`, MTP×3, fp8 KV cache.
 
 ## Files
 
@@ -16,7 +16,7 @@ served with **AEON-7** `ghcr.io/aeon-7/aeon-vllm-ultimate:latest`, MTP×3, fp8 K
 
 | Setting | Value |
 |---|---|
-| Image | `ghcr.io/aeon-7/aeon-vllm-ultimate:latest` (vLLM **0.23.0+aeon.sm121a.dflash**) |
+| Image | `ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1` (vLLM **0.23.0+aeon.sm121a.dflash**) |
 | MoE backend | **`flashinfer_cutlass`** (mixed-precision checkpoint; marlin/triton rejected per layer) |
 | NVFP4 GEMM | `VLLM_NVFP4_GEMM_BACKEND=marlin` |
 | Mamba | `--mamba-backend flashinfer` |

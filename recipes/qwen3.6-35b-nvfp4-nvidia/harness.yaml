@@ -17,7 +17,7 @@ series:
   recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-nvfp4-nvidia
   config:                                 # the load-bearing engine knobs (curated; full set in the recipe yaml)
     checkpoint: nvidia/qwen3.6-35b-a3b-nvfp4
-    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1
     quantization: modelopt_mixed (auto)
     attention_backend: flashinfer
     kv_cache_dtype: fp8

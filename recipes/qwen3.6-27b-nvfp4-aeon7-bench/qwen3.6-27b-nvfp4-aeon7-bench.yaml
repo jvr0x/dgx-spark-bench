@@ -9,7 +9,7 @@ model: "AEON-7/Qwen3.6-27B-AEON-Ultimate-Uncensored-NVFP4"
 port: 8238
 ctx: 32768
 display_name: "Qwen3.6-27B AEON NVFP4 +DFlash [BENCH]"
-image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1"
 entrypoint: "vllm serve"
 env:
   TORCH_CUDA_ARCH_LIST: "12.1a"

@@ -18,7 +18,7 @@ series:
   recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/ornith-35b-nvfp4-aeon7
   config:
     checkpoint: AEON-7/Ornith-1.0-35B-AEON-Ultimate-Uncensored-NVFP4
-    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1
     quantization: compressed-tensors (nvfp4-pack)
     attention_backend: flash_attn
     kv_cache_dtype: bf16 (vision tower)

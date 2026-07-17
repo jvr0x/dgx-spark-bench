@@ -18,7 +18,7 @@ port: 8222
 ctx: 32768
 display_name: "Qwen3.6-35B-A3B NVFP4 Fast (Unsloth) [BENCH]"
 
-image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1"
 entrypoint: "vllm serve"
 env:
   TORCH_CUDA_ARCH_LIST: "12.1a"

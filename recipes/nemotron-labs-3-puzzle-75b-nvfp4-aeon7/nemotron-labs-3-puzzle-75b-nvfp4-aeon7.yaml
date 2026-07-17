@@ -12,7 +12,7 @@ display_name: "Nemotron Puzzle 75B NVFP4 (AEON) [BENCH]"
 
 # IMAGE: AEON's vLLM 0.23 ultimate build for GB10/sm_121a with Mamba2 + FlashInfer CUTLASS.
 # ENTRYPOINT is /bin/bash (not vllm serve).
-image: "ghcr.io/aeon-7/aeon-vllm-ultimate:latest"
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1"
 entrypoint: "vllm serve"
 
 # GB10/sm_121a env for the AEON build.

@@ -22,7 +22,7 @@ series:
   recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-27b-nvfp4-unsloth
   config:
     checkpoint: /home/jvr0x/models/unsloth/Qwen3.6-27B-NVFP4
-    image: ghcr.io/aeon-7/aeon-vllm-ultimate:latest
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1
     quantization: modelopt_mixed (NVFP4)
     attention_backend: flashinfer
     kv_cache_dtype: fp8
