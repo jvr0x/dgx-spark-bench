@@ -32,7 +32,7 @@ env:
 # hit that same failure on 2026-07-19 (full box reboot). Fix: cap KV explicitly
 # and drop the profiled util down so the (buggy) profiler headroom calc can't
 # push it past the unified pool.
-gpu_memory_utilization: 0.35
+gpu_memory_utilization: 0.6
 
 # Bench needs high concurrency to measure scaling; sweep goes to 64.
 max_num_seqs: 64
