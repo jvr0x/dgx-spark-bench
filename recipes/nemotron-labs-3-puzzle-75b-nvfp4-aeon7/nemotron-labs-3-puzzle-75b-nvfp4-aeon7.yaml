@@ -24,9 +24,15 @@ env:
   TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: "1"
   VLLM_NVFP4_GEMM_BACKEND: "marlin"
 
-# gpu-memory-utilization 0.85 — leaves headroom for KV cache + host overhead.
-# Never exceed 0.85 on GB10's 128 GB unified pool.
-gpu_memory_utilization: 0.85
+# gpu-memory-utilization 0.35 + explicit --kv-cache-memory-bytes below.
+# REQUIRED on this AEON image for MTP models: the CUDA-graph memory estimator
+# returns a negative free-memory figure for MTP checkpoints, which inflates the
+# KV budget past physical RAM and OOMs the whole box (not just the container) —
+# confirmed 3x on the qwen3.6-35b flagship recipe (see PLANNING.md). This recipe
+# hit that same failure on 2026-07-19 (full box reboot). Fix: cap KV explicitly
+# and drop the profiled util down so the (buggy) profiler headroom calc can't
+# push it past the unified pool.
+gpu_memory_utilization: 0.35
 
 # Bench needs high concurrency to measure scaling; sweep goes to 64.
 max_num_seqs: 64
@@ -54,6 +60,8 @@ extra_args:
   - "32768"
   - "--kv-cache-dtype"
   - "fp8"
+  - "--kv-cache-memory-bytes"
+  - "25769803776"                  # 24 GiB explicit cap — bypasses broken AEON MTP estimator
   - "--moe-backend"
   - "flashinfer_cutlass"
   - "--enable-chunked-prefill"

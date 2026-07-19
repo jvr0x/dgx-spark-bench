@@ -9,7 +9,13 @@ model: "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4"
 port: 8244
 ctx: 32768
 display_name: "Nemotron-3-Super-120B NVFP4 [BENCH]"
-gpu_memory_utilization: 0.85
+# 0.3 + explicit --kv-cache-memory-bytes below. REQUIRED for MTP on this AEON-family
+# image: the CUDA-graph memory estimator returns a negative free-memory figure for
+# MTP checkpoints, inflating the KV budget past physical RAM -> full box reboot
+# (confirmed on the sibling nemotron-labs-3-puzzle-75b recipe, 2026-07-19; same
+# root cause documented in PLANNING.md for the qwen3.6-35b flagship). This model's
+# ~75GB weights leave less headroom than puzzle-75B's ~50GB, hence the extra margin.
+gpu_memory_utilization: 0.3
 max_num_seqs: 64
 load_format: "auto"
 enforce_eager: false
@@ -48,5 +54,7 @@ extra_args:
   - "--enable-chunked-prefill"
   - "--kv-cache-dtype"
   - "fp8"
+  - "--kv-cache-memory-bytes"
+  - "17179869184"                  # 16 GiB explicit cap — bypasses broken AEON MTP estimator
   - "--mamba_ssm_cache_dtype"
   - "float16"
