@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "run": {
-    "id": "qwen3.6-35b-nvfp4-specoff-2026-07-03T18:47:54Z",
-    "timestamp": "2026-07-03T18:47:54Z",
+    "id": "qwen3.6-35b-nvfp4-specoff-2026-07-19T10:42:11Z",
+    "timestamp": "2026-07-19T10:42:11Z",
     "harness_version": "0.1.0",
-    "git_commit": "f52ecad",
+    "git_commit": "755663b",
     "hardware": {
       "name": "DGX Spark",
       "soc": "GB10 Grace Blackwell",
@@ -46,7 +46,7 @@
       "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-35b-nvfp4-specoff",
       "config": {
         "checkpoint": "nvidia/qwen3.6-35b-a3b-nvfp4",
-        "image": "ghcr.io/aeon-7/aeon-vllm-ultimate:latest",
+        "image": "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1",
         "quantization": "modelopt_mixed (auto)",
         "attention_backend": "flashinfer",
         "kv_cache_dtype": "fp8",
@@ -65,114 +65,142 @@
         {
           "concurrency": 1,
           "agg_tok_s": 74.0,
-          "per_session_tok_s": 77.5,
+          "per_session_tok_s": 77.4,
           "ttft_ms": {
-            "p50": 148,
-            "p95": 150,
-            "p99": 152
+            "p50": 149,
+            "p95": 167,
+            "p99": 350
           },
           "itl_ms": {
-            "p50": 12.9,
-            "p95": 14.1,
-            "p99": 14.9
+            "p50": 13.0,
+            "p95": 14.4,
+            "p99": 15.3
           },
-          "samples": 52
+          "samples": 52,
+          "gpu": {
+            "temperature_c": 60,
+            "power_draw_w": 34.61
+          }
         },
         {
           "concurrency": 2,
           "agg_tok_s": 113.8,
           "per_session_tok_s": 60.4,
           "ttft_ms": {
-            "p50": 243,
-            "p95": 277,
-            "p99": 291
+            "p50": 273,
+            "p95": 288,
+            "p99": 556
           },
           "itl_ms": {
             "p50": 16.5,
-            "p95": 18.4,
-            "p99": 19.4
+            "p95": 18.0,
+            "p99": 18.8
           },
-          "samples": 80
+          "samples": 80,
+          "gpu": {
+            "temperature_c": 61,
+            "power_draw_w": 35.17
+          }
         },
         {
           "concurrency": 4,
           "agg_tok_s": 182.0,
-          "per_session_tok_s": 49.8,
+          "per_session_tok_s": 49.3,
           "ttft_ms": {
-            "p50": 477,
-            "p95": 481,
-            "p99": 482
+            "p50": 479,
+            "p95": 496,
+            "p99": 502
           },
           "itl_ms": {
-            "p50": 20.3,
-            "p95": 22.6,
-            "p99": 23.5
+            "p50": 20.5,
+            "p95": 22.5,
+            "p99": 23.3
           },
-          "samples": 128
+          "samples": 128,
+          "gpu": {
+            "temperature_c": 63,
+            "power_draw_w": 36.79
+          }
         },
         {
           "concurrency": 8,
           "agg_tok_s": 273.1,
-          "per_session_tok_s": 37.6,
+          "per_session_tok_s": 38.3,
           "ttft_ms": {
-            "p50": 882,
-            "p95": 890,
-            "p99": 891
+            "p50": 879,
+            "p95": 897,
+            "p99": 993
           },
           "itl_ms": {
-            "p50": 27.1,
-            "p95": 29.6,
-            "p99": 30.6
+            "p50": 26.8,
+            "p95": 29.5,
+            "p99": 30.5
           },
-          "samples": 192
+          "samples": 192,
+          "gpu": {
+            "temperature_c": 65,
+            "power_draw_w": 38.54
+          }
         },
         {
           "concurrency": 16,
           "agg_tok_s": 386.8,
           "per_session_tok_s": 27.0,
           "ttft_ms": {
-            "p50": 1449,
-            "p95": 1699,
-            "p99": 1700
+            "p50": 1444,
+            "p95": 1691,
+            "p99": 1811
           },
           "itl_ms": {
             "p50": 37.4,
-            "p95": 41.0,
-            "p99": 42.6
+            "p95": 41.1,
+            "p99": 42.5
           },
-          "samples": 272
+          "samples": 272,
+          "gpu": {
+            "temperature_c": 67,
+            "power_draw_w": 40.74
+          }
         },
         {
           "concurrency": 32,
           "agg_tok_s": 500.6,
           "per_session_tok_s": 17.8,
           "ttft_ms": {
-            "p50": 2716,
-            "p95": 2735,
-            "p99": 2738
+            "p50": 2639,
+            "p95": 3243,
+            "p99": 3280
           },
           "itl_ms": {
-            "p50": 54.0,
+            "p50": 53.6,
             "p95": 59.0,
-            "p99": 63.1
+            "p99": 92.5
           },
-          "samples": 352
+          "samples": 352,
+          "gpu": {
+            "temperature_c": 68,
+            "power_draw_w": 41.65
+          }
         },
         {
           "concurrency": 64,
-          "agg_tok_s": 574.6,
+          "agg_tok_s": 577.4,
           "per_session_tok_s": 10.5,
           "ttft_ms": {
-            "p50": 2914,
-            "p95": 4254,
-            "p99": 6955
+            "p50": 3210,
+            "p95": 6132,
+            "p99": 7159
           },
           "itl_ms": {
-            "p50": 82.2,
+            "p50": 82.4,
             "p95": 89.4,
-            "p99": 1077.6
+            "p99": 1061.7
           },
-          "samples": 404
+          "samples": 406,
+          "gpu": {
+            "temperature_c": 67,
+            "power_draw_w": 42.73
+          }
         }
       ]
     }
