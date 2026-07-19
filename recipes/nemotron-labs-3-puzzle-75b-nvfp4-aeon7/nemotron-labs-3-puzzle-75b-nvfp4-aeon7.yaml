@@ -23,6 +23,11 @@ env:
   NVIDIA_TF32_OVERRIDE: "1"
   TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: "1"
   VLLM_NVFP4_GEMM_BACKEND: "marlin"
+  # Caps parallel Inductor/Triton compile workers during warmup. Without this,
+  # v0.25.1's Mamba2 SSD kernel compile spawns ~10 parallel cicc/ptxas processes
+  # (~8GB each) on top of the loaded weights -> transient ~70GB spike -> box OOM.
+  # Confirmed 2026-07-19 (near-miss, caught at 822MB free before crash).
+  TORCHINDUCTOR_COMPILE_THREADS: "2"
 
 # gpu-memory-utilization 0.35 + explicit --kv-cache-memory-bytes below.
 # REQUIRED on this AEON image for MTP models: the CUDA-graph memory estimator
