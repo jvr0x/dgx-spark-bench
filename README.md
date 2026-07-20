@@ -5,6 +5,7 @@ Real, reproducible LLM inference benchmarks on the **NVIDIA DGX Spark** (GB10 Gr
 workloads**: many parallel long-context sessions, not just single-stream chat.
 
 **📊 Live dashboard:** [jvr0x.github.io/dgx-spark-bench](https://jvr0x.github.io/dgx-spark-bench/)
+**🎬 Related:** [tok-sim](https://jvr0x.github.io/tok-sim/) — visual tokens/sec simulator
 
 Every published number is a real run of this harness on real hardware. No projections, no
 vendor numbers — and every series links to the exact recipe that produced it.
