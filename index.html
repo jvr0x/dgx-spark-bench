@@ -181,7 +181,7 @@
   </div>
   <header>
     <div class="eyebrow">$ ./spark-bench --sweep --all-recipes</div>
-    <h1>How many <span class="accent">tokens/sec</span> can one DGX Spark serve under parallel load?</h1>
+    <h1>How many <span class="accent">tokens/sec</span> can one or two DGX Sparks serve under parallel load?</h1>
     <p class="sub">Aggregate decode throughput, per-session speed and tail latency as concurrent sessions scale — every number a real measured run. Toggle configs, set a latency budget, read the ceiling. <a class="accent" href="https://jvr0x.github.io/tok-sim/" target="_blank" rel="noopener">See what these speeds actually look like &rarr;</a></p>
     <div class="specs" id="specs"></div>
   </header>
@@ -360,6 +360,7 @@ const PRESETS=[
     "qwen3.6-35b-nvfp4-specoff","qwen3.6-35b-nvfp4-nvidia"]],
   ["llama.cpp", ()=>CFG.filter(c=>c.be==="llama.cpp").map(c=>c.id)],
   ["vLLM", ()=>CFG.filter(c=>/vllm/i.test(c.be)).map(c=>c.id)],
+  ["dual", ()=>CFG.filter(c=>/dual/i.test(c.id)).map(c=>c.id)],
   ["clear", ()=>[]],
 ];
 function applySet(ids){
