@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "minimax-m3-dual-2026-07-21T11:33:31Z",
+    "timestamp": "2026-07-21T11:33:31Z",
+    "harness_version": "0.1.0",
+    "git_commit": "db4ca4f",
+    "hardware": {
+      "name": "DGX Spark x2 (dual, TP=2)",
+      "soc": "GB10 Grace Blackwell (x2, CX7 RoCE interconnect)",
+      "mem_gb": 256,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 546,
+      "fp4_tops": 2000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "minimax-m3-dual",
+      "model": "MiniMax-M3 428B [DUAL 2xSpark]",
+      "quant": "W4A16 GPTQ + NVFP4-KV (b12x) + EAGLE3",
+      "backend": "vLLM (vllm-dual, TP=2)",
+      "status": "measured",
+      "weights_gb": 208.5,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/minimax-m3-dual",
+      "config": {
+        "checkpoint": "Sebesky/MiniMax-M3-W4A16-GPTQ",
+        "topology": "TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE",
+        "image": "vllm-node-minimax-m3-b12x-lmswitch",
+        "attention_backend": "b12x",
+        "kv_cache_dtype": "nvfp4",
+        "speculative": "EAGLE3, draft_tensor_parallel_size=2, 3 tokens",
+        "gpu_memory_utilization": 0.929,
+        "max_num_seqs": 1,
+        "max_model_len": 196608,
+        "block_size": 128,
+        "max_num_batched_tokens": 1024,
+        "thinking_mode": "adaptive",
+        "note": "428B, no pruning; max_num_seqs=1 is a genuine KV-capacity ceiling (weights alone are 105.8 GiB/node) \u2014 single-point roofline anchor, not a scaling curve"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 10.0,
+          "per_session_tok_s": 30.2,
+          "ttft_ms": {
+            "p50": 1317,
+            "p95": 97294,
+            "p99": 129918
+          },
+          "itl_ms": {
+            "p50": 82.7,
+            "p95": 98.1,
+            "p99": 191.6
+          },
+          "samples": 7,
+          "gpu": {
+            "temperature_c": 66,
+            "power_draw_w": 38.77
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -27,6 +27,7 @@
     "nemotron-3-super-nvfp4-vllm.json",
     "qwen3.6-27b-nvfp4-unsloth.json",
     "qwen3.6-35b-nvfp4-unsloth-fast.json",
-    "mimo-v25-dual.json"
+    "mimo-v25-dual.json",
+    "minimax-m3-dual.json"
   ]
 }
