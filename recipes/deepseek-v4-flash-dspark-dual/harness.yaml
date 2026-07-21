@@ -1,0 +1,65 @@
+# Harness run config for the deepseek-v4-flash-dspark-dual recipe (2x DGX Spark, TP=2).
+# Runs ON the master Spark, against the as-served profile on :8888.
+#
+#   lmswitch on deepseek-v4-flash-dspark-dual   # wait for Ready on port 8888 (both nodes)
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/deepseek-v4-flash-dspark-dual/harness.yaml \
+#     -o ../results/deepseek-v4-flash-dspark-dual.json
+#   lmswitch off deepseek-v4-flash-dspark-dual
+#
+# As-served (not a raised bench-profile): max_num_seqs=12 is the recipe's
+# validated ceiling on this pair at ctx=1048576, so the sweep is capped there.
+
+series:
+  id: deepseek-v4-flash-dspark-dual
+  model: DeepSeek-V4-Flash DSpark 1M [DUAL 2xSpark]
+  quant: NVFP4-DS-MLA KV + b12x MoE + DSpark spec-decode
+  backend: vLLM 0.25 (Anemll dspark-vllm-gx10, TP=2)
+  status: measured
+  weights_gb: 155.4
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/deepseek-v4-flash-dspark-dual
+  config:
+    checkpoint: deepseek-ai/DeepSeek-V4-Flash-DSpark
+    topology: TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE
+    image: ghcr.io/anemll/dspark-vllm-gx10:0.1.1
+    moe_backend: flashinfer_b12x
+    kv_cache_dtype: nvfp4_ds_mla
+    speculative: dspark, 3 tokens (probabilistic draft sampling)
+    gpu_memory_utilization: 0.85
+    max_num_seqs: 12
+    max_model_len: 1048576
+    block_size: 256
+    max_num_batched_tokens: 8192
+    prefix_caching: "on (defeated by unique prompts)"
+    chunked_prefill: true
+    async_scheduling: true
+    enable_thinking: false
+    note: "1M-ctx checkpoint; workload run at 1024/256 tokens (short-context roofline, not a long-context test)"
+
+hardware:
+  name: DGX Spark x2 (dual, TP=2)
+  soc: GB10 Grace Blackwell (x2, CX7 RoCE interconnect)
+  mem_gb: 256
+  mem_type: LPDDR5x
+  bw_gbs: 546
+  fp4_tops: 2000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  # max_num_seqs is 12 on this pair; sweep stops at that ceiling.
+  concurrencies: [1, 2, 4, 8, 12]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
+
+engine:
+  base_url: http://localhost:8888              # harness runs on the master Spark -> localhost
+  model: deepseek-v4-flash-dspark-dual          # MUST equal the dual yaml's served-model-name
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256

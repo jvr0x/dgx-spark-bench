@@ -28,6 +28,7 @@
     "qwen3.6-27b-nvfp4-unsloth.json",
     "qwen3.6-35b-nvfp4-unsloth-fast.json",
     "mimo-v25-dual.json",
-    "minimax-m3-dual.json"
+    "minimax-m3-dual.json",
+    "deepseek-v4-flash-dspark-dual.json"
   ]
 }
