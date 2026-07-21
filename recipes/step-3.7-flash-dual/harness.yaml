@@ -1,0 +1,63 @@
+# Harness run config for the step-3.7-flash-dual recipe (2x DGX Spark, TP=2).
+# Runs ON the master Spark, against the as-served profile on :8888.
+#
+#   lmswitch on step-3.7-flash-dual   # wait for Ready on port 8888 (both nodes)
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/step-3.7-flash-dual/harness.yaml \
+#     -o ../results/step-3.7-flash-dual.json
+#   lmswitch off step-3.7-flash-dual
+#
+# As-served (not a raised bench-profile): max_num_seqs=8 is the recipe's
+# validated ceiling on this pair, so the sweep is capped there. Baseline
+# (no-MTP) checkpoint — MTP needs a separate BF16-grafted checkpoint, not
+# used here.
+
+series:
+  id: step-3.7-flash-dual
+  model: Step-3.7-Flash NVFP4 [DUAL 2xSpark]
+  quant: NVFP4 (modelopt) + fp8 KV
+  backend: vLLM (vllm-dual, TP=2)
+  status: measured
+  weights_gb: 120.4
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/step-3.7-flash-dual
+  config:
+    checkpoint: stepfun-ai/Step-3.7-Flash-NVFP4
+    topology: TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE
+    image: vllm/vllm-openai:stepfun37
+    quantization: modelopt (NVFP4)
+    kv_cache_dtype: fp8
+    gpu_memory_utilization: 0.85
+    max_num_seqs: 8
+    max_model_len: 262144
+    max_num_batched_tokens: 8192
+    cuda_graphs: true
+    speculative: "none (baseline, no-MTP checkpoint)"
+    note: "Baseline no-MTP checkpoint; MTP variant needs a separate BF16-grafted checkpoint, not benched here"
+
+hardware:
+  name: DGX Spark x2 (dual, TP=2)
+  soc: GB10 Grace Blackwell (x2, CX7 RoCE interconnect)
+  mem_gb: 256
+  mem_type: LPDDR5x
+  bw_gbs: 546
+  fp4_tops: 2000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  # max_num_seqs is 8 on this pair; sweep stops at that ceiling.
+  concurrencies: [1, 2, 4, 6, 8]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
+
+engine:
+  base_url: http://localhost:8888        # harness runs on the master Spark -> localhost
+  model: step-3.7-flash-dual             # MUST equal the dual yaml's served-model-name
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256

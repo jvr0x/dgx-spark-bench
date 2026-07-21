@@ -1,0 +1,65 @@
+# Step-3.7-Flash NVFP4 — TP=2 across spark + gigabyte over CX7.
+# From MiaAI-Lab/Dual-DGX-Spark-Step-3.7-Flash-NVFP4 (baseline, no-MTP —
+# their own README says verify no-mtp before grafting MTP weights; MTP needs
+# a separate BF16-grafted checkpoint via their graft-mtp.sh, not done here).
+# Image vllm/vllm-openai:stepfun37 is a plain public Docker Hub pull (arm64
+# manifest present) — their local Dockerfile just adds an empty /workspace
+# dir on top, no source build needed. Weights live ONCE on gigabyte
+# (~/models/stepfun-ai/Step-3.7-Flash-NVFP4, ~129G); spark reads them over
+# the CX7 NFS mount, same convention as deepseek-v4-flash-dspark-dual.
+runtime: vllm-dual
+image: "vllm/vllm-openai:stepfun37"
+model: "stepfun-ai/Step-3.7-Flash-NVFP4"
+model_path: "~/models-gigabyte/stepfun-ai/Step-3.7-Flash-NVFP4"
+worker_model_path: "~/models/stepfun-ai/Step-3.7-Flash-NVFP4"
+port: 8888
+display_name: "Step-3.7-Flash NVFP4 [DUAL 2x SPARK]"
+
+worker_host: Gigabyte
+master_addr: 10.100.224.2
+worker_ip: 10.100.224.1
+master_port: 25000
+nccl:
+  ifname: enp1s0f1np1
+  hca: rocep1s0f1
+  gid_index: 3
+
+ctx: 262144
+max_num_seqs: 8
+gpu_memory_utilization: 0.85
+# Upstream's validated command has no --enforce-eager (cudagraphs on);
+# lmswitch defaults enforce_eager to true, so this must be turned off to
+# match the validated config.
+enforce_eager: false
+shm_size: 64g
+ready_timeout: 2400
+
+# 2026-07-21: first-request Triton JIT compile of a custom kernel
+# (_compute_slot_mapping_kernel) took >300s and tripped vLLM's default
+# VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS watchdog, which declared the engine
+# dead (EngineDeadError) and 500'd every subsequent request. Bumped to give
+# the one-time cold compile room to finish; does not change served behavior.
+#
+# 2026-07-21 (follow-up): with the above fix in place, hit a second, deeper
+# failure mid-decode — a cross-node NCCL _ALLGATHER_BASE between spark and
+# Gigabyte (over CX7 RoCE) stalled and was killed by PyTorch's default
+# ProcessGroupNCCL watchdog (600s / 10 min, see torch's
+# default_pg_nccl_timeout), which tears down the whole process group.
+# --distributed-timeout-seconds raises that watchdog so a slow (not
+# permanently deadlocked) collective has room to complete instead of
+# nuking the engine.
+env:
+  VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS: "900"
+
+extra_args:
+  - "--trust-remote-code"
+  - "--quantization=modelopt"
+  - "--kv-cache-dtype=fp8"
+  - "--max-num-batched-tokens=8192"
+  - "--disable-cascade-attn"
+  - "--disable-custom-all-reduce"
+  - "--no-enable-flashinfer-autotune"
+  - "--enable-auto-tool-choice"
+  - "--reasoning-parser=step3p5"
+  - "--tool-call-parser=step3p5"
+  - "--distributed-timeout-seconds=1800"
