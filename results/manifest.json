@@ -26,6 +26,7 @@
     "nemotron-labs-3-puzzle-75b-nvfp4-aeon7.json",
     "nemotron-3-super-nvfp4-vllm.json",
     "qwen3.6-27b-nvfp4-unsloth.json",
-    "qwen3.6-35b-nvfp4-unsloth-fast.json"
+    "qwen3.6-35b-nvfp4-unsloth-fast.json",
+    "mimo-v25-dual.json"
   ]
 }

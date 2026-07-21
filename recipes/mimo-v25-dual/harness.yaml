@@ -1,0 +1,66 @@
+# Harness run config for the mimo-v25-dual recipe (2x DGX Spark, Ray TP=2).
+# Runs ON the master Spark, against the as-served profile on :8888.
+#
+#   lmswitch on mimo-v25-dual   # wait for Ready on port 8888 (both nodes)
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/mimo-v25-dual/harness.yaml \
+#     -o ../results/mimo-v25-dual.json
+#   lmswitch off mimo-v25-dual
+#
+# As-served (not a raised bench-profile): max_num_seqs=3 is the model's own
+# KV-capacity ceiling at ctx=1000000 on this pair, so the sweep is capped there.
+
+series:
+  id: mimo-v25-dual
+  model: MiMo-V2.5 Omni [DUAL 2xSpark]
+  quant: NVFP4 + NVFP4-KV + MTP1
+  backend: vLLM (vllm-dual-ray, Ray TP=2)
+  status: measured
+  weights_gb: 170.9
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/mimo-v25-dual
+  config:
+    checkpoint: lukealonso/MiMo-V2.5-NVFP4
+    topology: TP=2 across spark (master) + gigabyte (worker), Ray executor over CX7 RoCE
+    image: vllm-mimo-v25-lmswitch (ghcr.io/miaai-lab/mimo-v2.5-vllm-dual-dgx-sparks:20260704 + launch patches baked in)
+    attention_backend: triton_attn_diffkv
+    moe_backend: flashinfer_cutlass
+    kv_cache_dtype: nvfp4
+    speculative: MTP, 1 token
+    gpu_memory_utilization: 0.88
+    max_num_seqs: 3
+    max_model_len: 1000000
+    block_size: 64
+    max_num_batched_tokens: 2048
+    prefix_caching: "on (defeated by unique prompts)"
+    chunked_prefill: true
+    async_scheduling: false
+    enable_thinking: false
+    note: "Omni MoE, TP=2 dual-node; max_num_seqs=3 is a genuine KV-capacity ceiling at 1M ctx on 2x128GB unified, not a daily-driver throttle"
+
+hardware:
+  name: DGX Spark x2 (dual, Ray TP=2)
+  soc: GB10 Grace Blackwell (x2, CX7 RoCE interconnect)
+  mem_gb: 256
+  mem_type: LPDDR5x
+  bw_gbs: 546
+  fp4_tops: 2000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  # max_num_seqs is 3 on this pair at ctx=1M; sweep stops at that ceiling.
+  concurrencies: [1, 2, 3]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
+
+engine:
+  base_url: http://localhost:8888        # harness runs on the master Spark -> localhost
+  model: mimo-v25-dual                   # MUST equal the dual yaml's served-model-name
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256

@@ -1,0 +1,125 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "mimo-v25-dual-2026-07-21T11:10:07Z",
+    "timestamp": "2026-07-21T11:10:07Z",
+    "harness_version": "0.1.0",
+    "git_commit": "f5ed8a7",
+    "hardware": {
+      "name": "DGX Spark x2 (dual, Ray TP=2)",
+      "soc": "GB10 Grace Blackwell (x2, CX7 RoCE interconnect)",
+      "mem_gb": 256,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 546,
+      "fp4_tops": 2000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        3
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "mimo-v25-dual",
+      "model": "MiMo-V2.5 Omni [DUAL 2xSpark]",
+      "quant": "NVFP4 + NVFP4-KV + MTP1",
+      "backend": "vLLM (vllm-dual-ray, Ray TP=2)",
+      "status": "measured",
+      "weights_gb": 170.9,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/mimo-v25-dual",
+      "config": {
+        "checkpoint": "lukealonso/MiMo-V2.5-NVFP4",
+        "topology": "TP=2 across spark (master) + gigabyte (worker), Ray executor over CX7 RoCE",
+        "image": "vllm-mimo-v25-lmswitch (ghcr.io/miaai-lab/mimo-v2.5-vllm-dual-dgx-sparks:20260704 + launch patches baked in)",
+        "attention_backend": "triton_attn_diffkv",
+        "moe_backend": "flashinfer_cutlass",
+        "kv_cache_dtype": "nvfp4",
+        "speculative": "MTP, 1 token",
+        "gpu_memory_utilization": 0.88,
+        "max_num_seqs": 3,
+        "max_model_len": 1000000,
+        "block_size": 64,
+        "max_num_batched_tokens": 2048,
+        "prefix_caching": "on (defeated by unique prompts)",
+        "chunked_prefill": true,
+        "async_scheduling": false,
+        "enable_thinking": false,
+        "note": "Omni MoE, TP=2 dual-node; max_num_seqs=3 is a genuine KV-capacity ceiling at 1M ctx on 2x128GB unified, not a daily-driver throttle"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 21.3,
+          "per_session_tok_s": 21.5,
+          "ttft_ms": {
+            "p50": 282,
+            "p95": 287,
+            "p99": 289
+          },
+          "itl_ms": {
+            "p50": 81.6,
+            "p95": 87.9,
+            "p99": 210.1
+          },
+          "samples": 15,
+          "gpu": {
+            "temperature_c": 67,
+            "power_draw_w": 37.82
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 27.0,
+          "per_session_tok_s": 21.2,
+          "ttft_ms": {
+            "p50": 5920,
+            "p95": 11305,
+            "p99": 11307
+          },
+          "itl_ms": {
+            "p50": 83.4,
+            "p95": 87.9,
+            "p99": 210.3
+          },
+          "samples": 19,
+          "gpu": {
+            "temperature_c": 66,
+            "power_draw_w": 37.6
+          }
+        },
+        {
+          "concurrency": 3,
+          "agg_tok_s": 55.5,
+          "per_session_tok_s": 21.8,
+          "ttft_ms": {
+            "p50": 286,
+            "p95": 12949,
+            "p99": 13106
+          },
+          "itl_ms": {
+            "p50": 83.4,
+            "p95": 87.8,
+            "p99": 210.0
+          },
+          "samples": 39,
+          "gpu": {
+            "temperature_c": 65,
+            "power_draw_w": 36.64
+          }
+        }
+      ]
+    }
+  ]
+}

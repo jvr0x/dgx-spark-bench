@@ -1,0 +1,112 @@
+# MiMo-V2.5 Omni (MiMoV2OmniForCausalLM) + MTP1 + NVFP4-KV — Ray TP=2 across
+# spark + gigabyte over CX7. From MiaAI-Lab/MiMo-V2.5-vLLM-Dual-DGX-Sparks
+# (built on tonyd2wild/MiMo-V2.5-TP2-1M-NVFP4-KV-2xDGX-Spark). Uses the new
+# vllm-dual-ray runtime (lmswitch/runtimes/vllm_dual_ray.py) — this image
+# requires Ray for cross-node TP, unlike the other dual recipes' plain
+# --nnodes multiproc launcher.
+#
+# Image: vllm-mimo-v25-lmswitch = ghcr.io/miaai-lab/mimo-v2.5-vllm-dual-dgx-
+# sparks:20260704 + all 10 of upstream's launch-time engine patches baked in
+# (~/utils/mimo-v25-spark-vllm-dual/Dockerfile.lmswitch) instead of applied
+# via docker-cp+exec on every launch. recipe/mods/ (drop-caches,
+# ray-keep-node-nccl-hca, nvfp4-kv-diffkv, etc.) is NOT re-baked — upstream's
+# own start.sh confirms those 7 mods already ship baked into this exact base
+# tag. Weights live ONCE on gigabyte (~183G, lukealonso/MiMo-V2.5-NVFP4
+# @a147dd04); spark reads them over the CX7 NFS mount.
+runtime: vllm-dual-ray
+image: "vllm-mimo-v25-lmswitch"
+model_path: "~/models-gigabyte/lukealonso/MiMo-V2.5-NVFP4"
+worker_model_path: "~/models/lukealonso/MiMo-V2.5-NVFP4"
+port: 8888
+display_name: "MiMo-V2.5 Omni NVFP4+MTP1 [DUAL 2x SPARK RAY]"
+
+worker_host: Gigabyte
+master_addr: 10.100.224.2
+worker_ip: 10.100.224.1
+nccl:
+  ifname: enp1s0f1np1
+  hca: rocep1s0f1
+  gid_index: 3
+
+# 2026-07-20: verified live at conservative values (ctx 131072, GMU 0.80)
+# first, since upstream's own GMU (0.83) is knife-edge on THEIR pair (their
+# env.sh: "0.84 OOMed ~40MiB @ 1M Omni; 0.83 validated"). 2026-07-21: bumped
+# ctx to their full 1000000. Their exact 0.83 GMU didn't transfer to our
+# hardware (needed 10.97 GiB KV, had 8.93 GiB); a follow-up try at 0.85
+# somehow measured even LESS available (7.35 GiB) — noisy back-to-back
+# retries without enough settling time between them, not a real reading.
+# Confirmed both nodes fully clean (117GB available, no stale processes)
+# before landing on 0.88 — clear margin above both prior attempts.
+ctx: 1000000
+max_num_seqs: 3
+gpu_memory_utilization: 0.88
+shm_size: 16g
+ray_wait_timeout: 600
+ready_timeout: 2400
+
+env:
+  # --- stability (from upstream recipe/env.sh; not vllm-dual-ray runtime
+  # defaults, since only THIS model's image needs them) ---
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+  RAY_memory_monitor_refresh_ms: "0"
+  VLLM_USE_RAY_V2_EXECUTOR_BACKEND: "0"
+  VLLM_USE_RAY_COMPILED_DAG_OVERLAP_COMM: "0"
+  VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: "0"
+  VLLM_ALLOW_LONG_MAX_MODEL_LEN: "1"
+  # Ray's own state must be consistently visible to BOTH the ray-start execs
+  # (which set it fresh per-invocation) AND the later vllm-serve exec (a
+  # separate `docker exec`, sees only container-level -e vars, not vars
+  # exported inside an earlier exec) — set at container level so every exec
+  # into this container agrees on where Ray's session lives.
+  RAY_TMPDIR: "/dev/shm/ray"
+  # Same reasoning: the vllm-serve exec needs RAY_ADDRESS to reliably find
+  # the already-running local Ray cluster started by a separate, earlier
+  # exec. Same value on both nodes (this cluster's one Ray head).
+  RAY_ADDRESS: "10.100.224.2:6379"
+  # --- NVFP4 weights + KV + WMMA decode ---
+  VLLM_NVFP4_GEMM_BACKEND: "flashinfer-cutlass"
+  VLLM_USE_FLASHINFER_MOE_FP4: "1"
+  VLLM_FLASHINFER_MOE_BACKEND: "throughput"
+  VLLM_NVFP4_INLINE: "1"
+  VLLM_WMMA_DECODE: "1"
+  # --- RoCE / NCCL extras beyond what vllm_dual_ray's runtime auto-sets
+  # (NCCL_IB_DISABLE/SOCKET_IFNAME/IB_HCA/IB_GID_INDEX/VLLM_HOST_IP) ---
+  NCCL_NET: "IB"
+  NCCL_NET_PLUGIN: "none"
+  GLOO_SOCKET_IFNAME: "enp1s0f1np1"
+  NCCL_SOCKET_FAMILY: "AF_INET"
+  NCCL_IB_MERGE_NICS: "0"
+  NCCL_IB_SUBNET_AWARE_ROUTING: "1"
+  NCCL_CROSS_NIC: "1"
+  NCCL_CUMEM_ENABLE: "0"
+  NCCL_NVLS_ENABLE: "0"
+  NCCL_NET_GDR_LEVEL: "LOC"
+  NCCL_PROTO: "LL"
+  NCCL_MAX_NCHANNELS: "2"
+
+# Appended after vllm_dual_ray's auto-generated flags (served-model-name,
+# host, port, max-model-len, tensor-parallel-size=2, pipeline-parallel-size=1,
+# distributed-executor-backend=ray, max-num-seqs, gpu-memory-utilization).
+serve_args:
+  - "--trust-remote-code"
+  - "--dtype=auto"
+  - "--load-format=safetensors"
+  - "--hf-overrides={\"architectures\":[\"MiMoV2OmniForCausalLM\"]}"
+  - "--limit-mm-per-prompt={\"image\":4,\"video\":1,\"audio\":1}"
+  - "--mm-encoder-tp-mode=data"
+  - "--attention-backend=triton_attn_diffkv"
+  - "--moe-backend=flashinfer_cutlass"
+  - "--kv-cache-dtype=nvfp4"
+  - "--block-size=64"
+  - "--max-num-batched-tokens=2048"
+  - "--enable-prefix-caching"
+  - "--enable-chunked-prefill"
+  - "--no-async-scheduling"
+  - "--enable-auto-tool-choice"
+  - "--tool-call-parser=mimo"
+  - "--reasoning-parser=mimo"
+  - "--default-chat-template-kwargs={\"enable_thinking\":false}"
+  - "--speculative-config={\"method\":\"mtp\",\"num_speculative_tokens\":1,\"use_local_argmax_reduction\":false}"
+  - "--generation-config=vllm"
+  - "--enforce-eager"
+  - "--disable-uvicorn-access-log"
