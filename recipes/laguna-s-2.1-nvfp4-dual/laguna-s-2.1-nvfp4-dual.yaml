@@ -1,0 +1,87 @@
+# lmswitch recipe for poolside/Laguna-S-2.1-NVFP4 on 2x DGX Spark (TP=2).
+# 117.6B total / 8.5B activated MoE, NVFP4 weights (~71G). Fits comfortably
+# on one Spark ([[laguna-s-2.1-nvfp4]].yaml, which DOES run DFlash) -- this
+# dual copy trades the spare headroom for more concurrency / KV budget at
+# 262144 ctx, following the same TP=2-across-both-nodes pattern as the other
+# *-dual.yaml recipes in this directory.
+# Stop the always-on llama-server daily driver on BOTH nodes before serving
+# ([[lmswitch-vllm-dual-runtime]]: "local daily driver must be OFF while a
+# dual model serves" -- a loaded GGUF shrinks vLLM's profiled free memory and
+# can fail KV sizing or worse; see [[spark-vllm-gpu-mem-ceiling]]).
+#
+# HISTORY (2026-07-22):
+# 1. First tried the stock vllm/vllm-openai:v0.25.1 image + --trust-remote-code
+#    + a flashinfer-bootstrap entrypoint (mirroring the solo recipe, which
+#    switched to that image because the AEON image's DFlash integration is
+#    broken for Laguna -- see laguna-s-2.1-nvfp4.yaml HISTORY). Tried TWICE
+#    on the stock image: once with --speculative-config (DFlash), once
+#    without. BOTH runs booted clean (KV cache sized fine, first health
+#    checks and even one full chat completion succeeded), then hung a few
+#    minutes into real load: the head's local shared-memory RPC to its own
+#    TP0 worker process went silent for 4 minutes ("No available shared
+#    memory broadcast block found"), then a hard RPC timeout killed the
+#    engine. The head exited but the worker on gigabyte was left orphaned
+#    (broken-pipe TCPStore loop) both times, requiring a manual
+#    `docker rm -f` on both nodes. Since this reproduced identically with
+#    DFlash OFF, it is NOT a DFlash bug -- it's a general TP=2 cross-node
+#    reliability problem with the stock image + --trust-remote-code combo
+#    under sustained request load on this hardware.
+# 2. DECISION: switched the dual recipe to the AEON image instead (same one
+#    the solo recipe moved away from) -- but WITHOUT DFlash. AEON's native
+#    `LagunaForCausalLM` (no --trust-remote-code, no bootstrap script) never
+#    crashed in any solo testing; only its separate `DFlashLagunaModel`
+#    integration was broken (embed_normalizer AttributeError). This recipe
+#    uses AEON's base model path only, betting that the stock-image hang was
+#    specific to running Laguna via HF's remote-code path under multi-node
+#    TP rather than something inherent to TP=2 itself (other AEON-image dual
+#    recipes on this cluster, e.g. qwen3.6-35b-nvfp4-nvidia-aeon7-dual, are
+#    NOT known to have this hang). UNTESTED as of this edit -- if it also
+#    hangs, the problem is broader than the image/remote-code theory and
+#    dual should be shelved for Laguna until root-caused properly.
+runtime: vllm-dual
+model: "poolside/Laguna-S-2.1-NVFP4"
+port: 8888
+ctx: 262144
+display_name: "Laguna S 2.1 NVFP4 [DUAL 2x SPARK]"
+
+# --- TP=2 across spark + gigabyte ---
+worker_host: Gigabyte
+master_addr: 10.100.224.2
+worker_ip: 10.100.224.1
+master_port: 25000
+nccl:
+  ifname: enp1s0f1np1
+  hca: rocep1s0f1
+  gid_index: 3
+
+# Weights owned by spark (this recipe's node); gigabyte reads the ro NFS
+# mirror at ~/models-spark. Mounted to the canonical /model path by
+# vllm_dual.py on both sides.
+model_path: "~/models/poolside/Laguna-S-2.1-NVFP4"
+worker_model_path: "~/models-spark/poolside/Laguna-S-2.1-NVFP4"
+
+extra_mounts:
+  - "~/.cache/vllm-laguna-s-2.1-nvfp4-dual:/root/.cache/vllm"
+
+shm_size: 64g
+ready_timeout: 2400
+# --- end TP=2 wiring ---
+
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1"
+entrypoint: "vllm serve"
+
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+  MAX_JOBS: "4"
+
+gpu_memory_utilization: 0.8
+max_num_seqs: 16
+tool_call_parser: "poolside_v1"
+reasoning_parser: "poolside_v1"
+enforce_eager: false
+
+extra_args:
+  - "--override-generation-config"
+  - '{"temperature":0.7,"top_p":0.95}'

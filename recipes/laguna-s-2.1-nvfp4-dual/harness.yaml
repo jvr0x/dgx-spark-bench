@@ -1,0 +1,69 @@
+# Harness run config for poolside/Laguna-S-2.1-NVFP4, TP=2 across both DGX
+# Sparks (spark + Gigabyte over CX7). NOT YET USABLE -- see README.md for
+# three failed attempts, all hung with the same shm_broadcast signature.
+# Kept for provenance / to resume investigation, not for reproducing a run.
+#
+#   lmswitch on laguna-s-2.1-nvfp4-dual     # wait for "Ready on port 8888"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/laguna-s-2.1-nvfp4-dual/harness.yaml \
+#     -o ../results/laguna-s-2.1-nvfp4-dual.json
+#   lmswitch off laguna-s-2.1-nvfp4-dual
+
+series:
+  id: laguna-s-2.1-nvfp4-dual
+  model: Laguna-S-2.1 [DUAL 2x SPARK]
+  params_b: 117.6                          # total; 8.5B active (MoE), TP=2
+  quant: NVFP4 (DFlash dropped, see README)
+  backend: vLLM (TP=2, native --nnodes 2)
+  status: measured                         # NOT true measured throughput -- see README, all points are 0
+  weights_gb: 71.9
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/laguna-s-2.1-nvfp4-dual
+  config:
+    checkpoint: poolside/Laguna-S-2.1-NVFP4
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1 (final attempt; see README for the other 2)
+    topology: TP=2, head=spark + worker=Gigabyte over CX7 (NCCL IB)
+    quantization: compressed-tensors (nvfp4-pack-quantized)
+    attention_backend: flashinfer
+    speculative: none (dropped after ruling out DFlash as the cause -- see README)
+    reasoning_parser: poolside_v1
+    tool_call_parser: poolside_v1
+    max_num_seqs: 16
+    max_model_len: 262144
+    cuda_graphs: true (enforce_eager false)
+    shm_size: 64g
+    gpu_memory_utilization: 0.8
+    note: >
+      BLOCKED -- see README.md. All 3 configurations tried (stock image +
+      DFlash, stock image without DFlash, AEON image without DFlash) hung
+      under load with the identical `shm_broadcast.py: No available shared
+      memory broadcast block found` signature, at three different points
+      in the request lifecycle. Not a DFlash bug, not an image bug --
+      likely something in Laguna's architecture desyncing vLLM's native
+      TP=2 multi-node launcher. No results file exists for this recipe.
+
+engine:
+  base_url: http://localhost:8888
+  model: laguna-s-2.1-nvfp4-dual
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark x2 (TP=2)
+  soc: GB10 Grace Blackwell
+  mem_gb: 256
+  mem_type: LPDDR5x
+  bw_gbs: 546
+  fp4_tops: 2000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 12, 16, 20]
+  warmup_s: 20
+  measure_s: 120
+  request_timeout_s: 300
