@@ -49,7 +49,7 @@
         "quantization": "compressed-tensors (nvfp4-pack-quantized)",
         "attention_backend": "flashinfer",
         "kv_cache_dtype": "fp8 (auto)",
-        "speculative": "DFlash, 15 tokens",
+        "speculative": "DFlash, 6 tokens",
         "moe_backend": "flashinfer_cutlass (auto)",
         "reasoning_parser": "poolside_v1",
         "tool_call_parser": "poolside_v1",
@@ -59,7 +59,7 @@
         "trust_remote_code": true,
         "shm_size": "32g (ulimit_memlock, cap-add IPC_LOCK)",
         "gpu_memory_utilization": 0.85,
-        "note": "AEON image (ghcr.io/aeon-7/aeon-vllm-ultimate) has native Laguna+DFlash support but a real bug crashes the drafter's first forward pass (embed_normalizer AttributeError) in both eager and compiled mode -- switched to stock vllm-openai:v0.25.1 + --trust-remote-code + a flashinfer-bootstrap entrypoint, ported from github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which validated this exact combo. First real launch (2026-07-22) confirmed 33.05 GiB KV cache / 944,195 tokens / 3.60x concurrency @ 262144 ctx -- matches that repo's published numbers (32.44 GiB / 926,683 / 3.54x).\n"
+        "note": "AEON image (ghcr.io/aeon-7/aeon-vllm-ultimate) has native Laguna+DFlash support but a real bug crashes the drafter's first forward pass (embed_normalizer AttributeError) in both eager and compiled mode -- switched to stock vllm-openai:v0.25.1 + --trust-remote-code + a flashinfer-bootstrap entrypoint, ported from github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which validated this exact combo. First real launch (2026-07-22) confirmed 33.05 GiB KV cache / 944,195 tokens / 3.60x concurrency @ 262144 ctx -- matches that repo's published numbers (32.44 GiB / 926,683 / 3.54x). TUNED: num_speculative_tokens dropped 15->6 after the initial 15-token run showed DFlash's per-position acceptance decaying to near-zero past position ~6 (drafting/verifying tokens that are almost never accepted is wasted compute). Rebenchmark at 6 beat the 15-token baseline at every single concurrency point and every metric -- agg tok/s 23.5/38.4/49.1/55.5/57.6 vs 23.5/34.1/46.9/53.3/53.3, per-session 27.3/19.9/16.7/15.6/15.7 vs 25.9/19.1/15.8/13.8/15.0, ttft_p95 lower at every point too, at N=1/2/3/4/6. Baseline series published separately for comparison (see laguna-s-2.1-nvfp4-nspec15).\n"
       },
       "points": [
         {
