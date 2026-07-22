@@ -1,0 +1,75 @@
+# Harness run config for the laguna-s-2.1-nvfp4-nspec15 comparison recipe
+# (num_speculative_tokens=15, the un-tuned default). Published purely to
+# show the tuning delta against ../laguna-s-2.1-nvfp4/ (num_speculative_tokens=6,
+# the recommended config) on the dashboard.
+#
+#   cp ../laguna-s-2.1-nvfp4-nspec15/laguna-s-2.1-nvfp4-nspec15.yaml ~/utils/lmswitch/ai-models/
+#   lmswitch on laguna-s-2.1-nvfp4-nspec15       # wait for "Ready on port 8132"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/laguna-s-2.1-nvfp4-nspec15/harness.yaml \
+#     -o ../results/laguna-s-2.1-nvfp4-nspec15.json
+#   lmswitch off laguna-s-2.1-nvfp4-nspec15
+
+series:
+  id: laguna-s-2.1-nvfp4-nspec15
+  model: Laguna-S-2.1 [nspec=15]
+  params_b: 117.6
+  quant: NVFP4 + DFlash (15 tok, untuned)
+  backend: vLLM
+  status: measured
+  weights_gb: 71.9
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/laguna-s-2.1-nvfp4-nspec15
+  config:
+    checkpoint: poolside/Laguna-S-2.1-NVFP4
+    draft_checkpoint: poolside/Laguna-S-2.1-DFlash-NVFP4
+    image: vllm/vllm-openai:v0.25.1
+    quantization: compressed-tensors (nvfp4-pack-quantized)
+    attention_backend: flashinfer
+    kv_cache_dtype: fp8 (auto)
+    speculative: DFlash, 15 tokens (untuned default)
+    moe_backend: flashinfer_cutlass (auto)
+    reasoning_parser: poolside_v1
+    tool_call_parser: poolside_v1
+    max_num_seqs: 4
+    max_model_len: 262144
+    cuda_graphs: true (enforce_eager false)
+    trust_remote_code: true
+    shm_size: 32g (ulimit_memlock, cap-add IPC_LOCK)
+    gpu_memory_utilization: 0.85
+    note: >
+      Comparison baseline for ../laguna-s-2.1-nvfp4/ (num_speculative_tokens=6).
+      DFlash's per-position acceptance decays fast -- roughly 68%, 37%, 22%,
+      15%, 7%, 5.6%, 3.7%, then near-zero -- so drafting/verifying all 15
+      tokens every step is mostly wasted compute past position ~6. This
+      15-token run loses to the 6-token config at every single concurrency
+      point and every metric measured: agg tok/s 23.5/34.1/46.9/53.3/53.3 vs
+      23.5/38.4/49.1/55.5/57.6, per-session tok/s 25.9/19.1/15.8/13.8/15.0 vs
+      27.3/19.9/16.7/15.6/15.7, at N=1/2/3/4/6. Not the recommended config --
+      published for comparison only.
+
+engine:
+  base_url: http://localhost:8132
+  model: laguna-s-2.1-nvfp4-nspec15
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 3, 4, 6]
+  warmup_s: 20
+  measure_s: 120
+  request_timeout_s: 300

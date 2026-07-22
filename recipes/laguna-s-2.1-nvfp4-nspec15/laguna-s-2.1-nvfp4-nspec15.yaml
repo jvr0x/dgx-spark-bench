@@ -1,0 +1,42 @@
+# Comparison recipe: identical to ../laguna-s-2.1-nvfp4/laguna-s-2.1-nvfp4.yaml
+# EXCEPT num_speculative_tokens=15 (vLLM/poolside's own default) instead of
+# the tuned value of 6. Published as its own series purely to show the
+# tuning delta on the dashboard -- this is NOT the recommended config, see
+# ../laguna-s-2.1-nvfp4/ for that. Distinct port (8132) so it can coexist
+# with the main recipe if both happen to be registered at once.
+runtime: vllm
+model: "poolside/Laguna-S-2.1-NVFP4"
+port: 8132
+ctx: 262144
+display_name: "Laguna S 2.1 NVFP4 [nspec=15 baseline]"
+
+image: "vllm/vllm-openai:v0.25.1"
+entrypoint: "/bootstrap.sh"
+
+shm_size: "32g"
+ulimit_memlock: true
+
+trust_remote_code: true
+
+env:
+  CUTE_DSL_ARCH: "sm_121a"
+  MAX_JOBS: "4"
+  VLLM_TRUST_REMOTE_CODE: "1"
+  PATH: "/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+gpu_memory_utilization: 0.85
+max_num_seqs: 4
+tool_call_parser: "poolside_v1"
+reasoning_parser: "poolside_v1"
+enforce_eager: false
+ready_timeout: 1800
+
+extra_mounts:
+  - "~/utils/lmswitch/ai-models/scripts/laguna-bootstrap.sh:/bootstrap.sh:ro"
+  - "~/models/poolside/Laguna-S-2.1-DFlash-NVFP4:/home/jvr0x/models/poolside/Laguna-S-2.1-DFlash-NVFP4:ro"
+
+extra_args:
+  - "--speculative-config"
+  - '{"model":"/home/jvr0x/models/poolside/Laguna-S-2.1-DFlash-NVFP4","num_speculative_tokens":15,"method":"dflash"}'
+  - "--override-generation-config"
+  - '{"temperature":0.7,"top_p":0.95}'

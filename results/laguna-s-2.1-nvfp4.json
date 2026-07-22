@@ -1,0 +1,168 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "laguna-s-2.1-nvfp4-2026-07-22T11:52:12Z",
+    "timestamp": "2026-07-22T11:52:12Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b706c14",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "warmup_s": 20,
+      "measure_s": 120,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "laguna-s-2.1-nvfp4",
+      "model": "Laguna-S-2.1",
+      "params_b": 117.6,
+      "quant": "NVFP4 + DFlash",
+      "backend": "vLLM",
+      "status": "measured",
+      "weights_gb": 71.9,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/laguna-s-2.1-nvfp4",
+      "config": {
+        "checkpoint": "poolside/Laguna-S-2.1-NVFP4",
+        "draft_checkpoint": "poolside/Laguna-S-2.1-DFlash-NVFP4",
+        "image": "vllm/vllm-openai:v0.25.1",
+        "quantization": "compressed-tensors (nvfp4-pack-quantized)",
+        "attention_backend": "flashinfer",
+        "kv_cache_dtype": "fp8 (auto)",
+        "speculative": "DFlash, 15 tokens",
+        "moe_backend": "flashinfer_cutlass (auto)",
+        "reasoning_parser": "poolside_v1",
+        "tool_call_parser": "poolside_v1",
+        "max_num_seqs": 4,
+        "max_model_len": 262144,
+        "cuda_graphs": "true (enforce_eager false)",
+        "trust_remote_code": true,
+        "shm_size": "32g (ulimit_memlock, cap-add IPC_LOCK)",
+        "gpu_memory_utilization": 0.85,
+        "note": "AEON image (ghcr.io/aeon-7/aeon-vllm-ultimate) has native Laguna+DFlash support but a real bug crashes the drafter's first forward pass (embed_normalizer AttributeError) in both eager and compiled mode -- switched to stock vllm-openai:v0.25.1 + --trust-remote-code + a flashinfer-bootstrap entrypoint, ported from github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which validated this exact combo. First real launch (2026-07-22) confirmed 33.05 GiB KV cache / 944,195 tokens / 3.60x concurrency @ 262144 ctx -- matches that repo's published numbers (32.44 GiB / 926,683 / 3.54x).\n"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 23.5,
+          "per_session_tok_s": 27.3,
+          "ttft_ms": {
+            "p50": 480,
+            "p95": 488,
+            "p99": 490
+          },
+          "itl_ms": {
+            "p50": 105.7,
+            "p95": 113.4,
+            "p99": 119.2
+          },
+          "samples": 11,
+          "gpu": {
+            "temperature_c": 71,
+            "power_draw_w": 43.36
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 38.4,
+          "per_session_tok_s": 19.9,
+          "ttft_ms": {
+            "p50": 580,
+            "p95": 621,
+            "p99": 622
+          },
+          "itl_ms": {
+            "p50": 139.2,
+            "p95": 149.0,
+            "p99": 154.3
+          },
+          "samples": 18,
+          "gpu": {
+            "temperature_c": 69,
+            "power_draw_w": 42.94
+          }
+        },
+        {
+          "concurrency": 3,
+          "agg_tok_s": 49.1,
+          "per_session_tok_s": 16.7,
+          "ttft_ms": {
+            "p50": 480,
+            "p95": 676,
+            "p99": 681
+          },
+          "itl_ms": {
+            "p50": 159.3,
+            "p95": 169.7,
+            "p99": 180.8
+          },
+          "samples": 23,
+          "gpu": {
+            "temperature_c": 70,
+            "power_draw_w": 43.34
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 55.5,
+          "per_session_tok_s": 15.6,
+          "ttft_ms": {
+            "p50": 535,
+            "p95": 754,
+            "p99": 758
+          },
+          "itl_ms": {
+            "p50": 172.3,
+            "p95": 186.9,
+            "p99": 198.5
+          },
+          "samples": 26,
+          "gpu": {
+            "temperature_c": 69,
+            "power_draw_w": 43.63
+          }
+        },
+        {
+          "concurrency": 6,
+          "agg_tok_s": 57.6,
+          "per_session_tok_s": 15.7,
+          "ttft_ms": {
+            "p50": 8716,
+            "p95": 15342,
+            "p99": 15666
+          },
+          "itl_ms": {
+            "p50": 172.2,
+            "p95": 185.6,
+            "p99": 196.8
+          },
+          "samples": 27,
+          "gpu": {
+            "temperature_c": 68,
+            "power_draw_w": 42.98
+          }
+        }
+      ]
+    }
+  ]
+}

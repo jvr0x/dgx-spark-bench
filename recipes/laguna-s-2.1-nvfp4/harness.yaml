@@ -1,0 +1,87 @@
+# Harness run config for poolside/Laguna-S-2.1-NVFP4 + DFlash speculative decoding.
+# Benchmarks the recipe already registered in lmswitch's own ai-models/ dir
+# (laguna-s-2.1-nvfp4.yaml, port 8131) directly -- no separate -bench profile
+# needed since that recipe isn't a shared daily-driver port (unlike the
+# collision case documented for qwen3.6-27b-nvfp4-unsloth).
+#
+#   lmswitch on laguna-s-2.1-nvfp4       # wait for "Ready on port 8131"
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/laguna-s-2.1-nvfp4/harness.yaml \
+#     -o ../results/laguna-s-2.1-nvfp4.json
+#   lmswitch off laguna-s-2.1-nvfp4      # then restart the daily driver
+
+series:
+  id: laguna-s-2.1-nvfp4
+  model: Laguna-S-2.1
+  params_b: 117.6                          # total; 8.5B active (MoE)
+  quant: NVFP4 + DFlash
+  backend: vLLM
+  status: measured
+  weights_gb: 71.9                         # target + draft, from HF safetensors index
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/laguna-s-2.1-nvfp4
+  config:
+    checkpoint: poolside/Laguna-S-2.1-NVFP4
+    draft_checkpoint: poolside/Laguna-S-2.1-DFlash-NVFP4
+    image: vllm/vllm-openai:v0.25.1
+    quantization: compressed-tensors (nvfp4-pack-quantized)
+    attention_backend: flashinfer
+    kv_cache_dtype: fp8 (auto)
+    speculative: DFlash, 6 tokens
+    moe_backend: flashinfer_cutlass (auto)
+    reasoning_parser: poolside_v1
+    tool_call_parser: poolside_v1
+    max_num_seqs: 4
+    max_model_len: 262144
+    cuda_graphs: true (enforce_eager false)
+    trust_remote_code: true
+    shm_size: 32g (ulimit_memlock, cap-add IPC_LOCK)
+    gpu_memory_utilization: 0.85
+    note: >
+      AEON image (ghcr.io/aeon-7/aeon-vllm-ultimate) has native Laguna+DFlash
+      support but a real bug crashes the drafter's first forward pass
+      (embed_normalizer AttributeError) in both eager and compiled mode --
+      switched to stock vllm-openai:v0.25.1 + --trust-remote-code + a
+      flashinfer-bootstrap entrypoint, ported from
+      github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which
+      validated this exact combo. First real launch (2026-07-22) confirmed
+      33.05 GiB KV cache / 944,195 tokens / 3.60x concurrency @ 262144 ctx --
+      matches that repo's published numbers (32.44 GiB / 926,683 / 3.54x).
+      TUNED: num_speculative_tokens dropped 15->6 after the initial 15-token
+      run showed DFlash's per-position acceptance decaying to near-zero past
+      position ~6 (drafting/verifying tokens that are almost never accepted
+      is wasted compute). Rebenchmark at 6 beat the 15-token baseline at
+      every single concurrency point and every metric -- agg tok/s
+      23.5/38.4/49.1/55.5/57.6 vs 23.5/34.1/46.9/53.3/53.3, per-session
+      27.3/19.9/16.7/15.6/15.7 vs 25.9/19.1/15.8/13.8/15.0, ttft_p95 lower
+      at every point too, at N=1/2/3/4/6. Baseline series published
+      separately for comparison (see laguna-s-2.1-nvfp4-nspec15).
+
+engine:
+  base_url: http://localhost:8131
+  model: laguna-s-2.1-nvfp4
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  # max_num_seqs is 4 (MiaAI-Lab's validated single-user starting point) --
+  # sweep goes up to that ceiling, plus 1 point past it to see the fallback
+  # behavior (queuing, not a crash, is the expected/correct result at 6).
+  concurrencies: [1, 2, 3, 4, 6]
+  warmup_s: 20
+  measure_s: 120
+  request_timeout_s: 300

@@ -29,6 +29,8 @@
     "qwen3.6-35b-nvfp4-unsloth-fast.json",
     "mimo-v25-dual.json",
     "minimax-m3-dual.json",
-    "deepseek-v4-flash-dspark-dual.json"
+    "deepseek-v4-flash-dspark-dual.json",
+    "laguna-s-2.1-nvfp4.json",
+    "laguna-s-2.1-nvfp4-nspec15.json"
   ]
 }

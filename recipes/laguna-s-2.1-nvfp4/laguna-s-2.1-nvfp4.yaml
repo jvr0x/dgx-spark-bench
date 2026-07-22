@@ -1,0 +1,96 @@
+# lmswitch recipe for poolside/Laguna-S-2.1-NVFP4 on 1x DGX Spark.
+# 117.6B total / 8.5B activated MoE (256 experts + 1 shared), mixed
+# sliding-window (36/48 layers) + global attention, NVFP4 weights (~71G) +
+# DFlash draft model (~2G) for speculative decoding.
+#
+# HISTORY (2026-07-21/22): first tried the AEON image
+# (ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1), which ships a
+# native `laguna.py`/`laguna_dflash.py` — but that build's DFlash
+# integration is genuinely broken for Laguna: `AttributeError:
+# 'DFlashLagunaModel' object has no attribute 'embed_normalizer'` in
+# vllm/model_executor/models/qwen3_dflash.py::embed_input_ids, crashing on
+# the draft model's first forward pass in BOTH eager and compiled mode. Not
+# fixable via yaml. See [[poolside-laguna-s21-lmswitch]].
+#
+# Switched to the stock image + bootstrap-script approach from
+# github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which has real
+# validated numbers for this exact model+draft combo on a GB10 Spark
+# (32.44 GiB KV cache, 926,683 tokens @ 0.85 util). That repo's start.sh
+# uses --trust-remote-code (stock vllm-openai lacks native Laguna support,
+# so it falls back to the checkpoint's own modeling_laguna.py) plus a tiny
+# bootstrap entrypoint that pip-installs flashinfer-python before `vllm
+# serve` (the stock image doesn't ship FlashInfer's NVFP4 kernels).
+runtime: vllm
+model: "poolside/Laguna-S-2.1-NVFP4"
+port: 8131
+ctx: 262144
+display_name: "Laguna S 2.1 NVFP4"
+
+image: "vllm/vllm-openai:v0.25.1"
+entrypoint: "/bootstrap.sh"
+
+# MiaAI-Lab needed 32g shm + unlimited memlock + IPC_LOCK for this model;
+# lmswitch's solo vllm runtime only recently grew this override (patched
+# 2026-07-22 in runtimes/vllm.py — previously hardcoded 8g, no yaml knob).
+shm_size: "32g"
+ulimit_memlock: true
+
+trust_remote_code: true
+
+env:
+  CUTE_DSL_ARCH: "sm_121a"
+  MAX_JOBS: "4"
+  VLLM_TRUST_REMOTE_CODE: "1"
+  PATH: "/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# MiaAI-Lab validated 0.85 on real GB10 hardware with this exact image —
+# no AEON-specific flashinfer/MTP graph-mem estimator bug in play here
+# (that bug was [[spark-vllm-gpu-mem-ceiling]], AEON-image-only).
+gpu_memory_utilization: 0.85
+# MiaAI-Lab's validated value (they call it "a safe starting point for
+# single-user use"; poolside's own card serves at 32 -- untried here yet).
+max_num_seqs: 4
+tool_call_parser: "poolside_v1"
+reasoning_parser: "poolside_v1"
+enforce_eager: false
+ready_timeout: 1800
+
+# ~71G weights + DFlash: stop the always-on llama-server daily driver first
+# (e.g. `qwen3.6-35b-q8-mtp`, auto-restart R) -- it holds ~36G and will push
+# KV sizing past what's free, same class of failure as
+# [[spark-vllm-gpu-mem-ceiling]].
+
+# Bootstrap entrypoint (installs FlashInfer, then execs `vllm serve "$@"`)
+# and the DFlash draft model, both mounted at fixed container paths.
+extra_mounts:
+  - "~/utils/lmswitch/ai-models/scripts/laguna-bootstrap.sh:/bootstrap.sh:ro"
+  - "~/models/poolside/Laguna-S-2.1-DFlash-NVFP4:/home/jvr0x/models/poolside/Laguna-S-2.1-DFlash-NVFP4:ro"
+
+extra_args:
+  - "--speculative-config"
+  - '{"model":"/home/jvr0x/models/poolside/Laguna-S-2.1-DFlash-NVFP4","num_speculative_tokens":6,"method":"dflash"}'
+  - "--override-generation-config"
+  - '{"temperature":0.7,"top_p":0.95}'
+  # Do NOT add min_p to overrides: vLLM rejects min_p + logit_bias under
+  # speculative decoding (returns 400 on every sampled request).
+  # Do NOT add --linear-backend flashinfer_b12x on 0.25.1: broken + slower.
+
+# TUNING (2026-07-22): num_speculative_tokens dropped 15 -> 6. The dual
+# recipe's spec-decoding metrics (before it was abandoned, see
+# [[poolside-laguna-s21-lmswitch]]) showed per-position DFlash acceptance
+# decaying fast -- ~68%, 37%, 22%, 15%, 7%, 5.6%, 3.7%... near 0% by
+# position 8-14 -- matching poolside's own "~2.9-3.1 tokens/step" figure.
+# Drafting+verifying 15 tokens/step when only ~3 are typically accepted is
+# mostly wasted compute; 6 keeps positions with non-trivial acceptance
+# (~68% down to ~5.6%) while dropping the near-zero tail. Also resolves the
+# recipe's old "max_num_scheduled_tokens is set to 1992 ... suboptimal
+# performance ... decrease num_speculative_tokens" warning. CONFIRMED: full
+# rebenchmark at 6 beat the 15-token baseline at every single N and every
+# single metric (agg tok/s, per-session tok/s, AND ttft_p95) --
+# agg 23.5/38.4/49.1/55.5/57.6 vs baseline 23.5/34.1/46.9/53.3/53.3, per
+# 27.3/19.9/16.7/15.6/15.7 vs baseline 25.9/19.1/15.8/13.8/15.0, at
+# N=1/2/3/4/6. Aggregate throughput also no longer flatlines exactly at the
+# max_num_seqs=4 ceiling (kept climbing a bit to N=6). Baseline published
+# as its own comparison series: recipes/laguna-s-2.1-nvfp4-nspec15/,
+# results/laguna-s-2.1-nvfp4-nspec15.json. Current run at
+# .../results/laguna-s-2.1-nvfp4.json.
