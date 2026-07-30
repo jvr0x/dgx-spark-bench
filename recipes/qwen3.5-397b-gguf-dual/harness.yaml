@@ -1,0 +1,63 @@
+# Harness run config for the qwen3.5-397b-gguf-dual recipe (2x DGX Spark,
+# GGUF split over llama.cpp RPC). Runs ON the head Spark, against the
+# bench profile served by lmswitch on :8228.
+#
+#   lmswitch on qwen3.5-397b-gguf-dual-bench    # wait for Ready on port 8228
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/qwen3.5-397b-gguf-dual/harness.yaml \
+#     -o ../results/qwen3.5-397b-gguf-dual.json
+#   lmswitch off qwen3.5-397b-gguf-dual-bench
+#   lmswitch on qwen3.5-397b-gguf-dual          # restore the daily driver
+
+series:
+  id: qwen3.5-397b-gguf-dual
+  model: Qwen3.5-397B-A17B [DUAL 2xSpark]
+  params_b: 397
+  quant: GGUF UD-IQ4_NL
+  backend: llama.cpp (RPC, 2 nodes)
+  status: measured
+  weights_gb: 180.5
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.5-397b-gguf-dual
+  config:
+    checkpoint: unsloth/Qwen3.5-397B-A17B-GGUF/UD-IQ4_NL
+    topology: llama.cpp RPC across spark (head, CUDA0) + gigabyte (RPC0) over CX7 RDMA
+    runtime: llama.cpp b9811 (9df06805e)
+    quantization: UD-IQ4_NL (all 512 experts)
+    tensor_split: "0.45,0.55"
+    flash_attention: true
+    kv_cache_dtype: q8_0
+    ctx: 32768
+    parallel: 8
+    kv_unified: true
+    speculative: NONE (llama.cpp)
+    cuda_graphs: false
+    prefix_caching: false
+    note: "GGUF because the NVFP4 V2 checkpoint (226.8 GiB) does not fit two Sparks; 15 of 60 layers are full-attention, the rest linear/GDN"
+
+engine:
+  base_url: http://localhost:8228
+  model: qwen3.5-397b-gguf-dual-bench
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark x2 (dual, llama.cpp RPC)
+  soc: GB10 Grace Blackwell (x2, CX7 RoCE interconnect)
+  mem_gb: 256
+  mem_type: LPDDR5x
+  bw_gbs: 546
+  fp4_tops: 2000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  # -np 8 is the slot ceiling on this profile; sweep stops there.
+  concurrencies: [1, 2, 4, 8]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

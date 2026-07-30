@@ -1,0 +1,60 @@
+# lmswitch BENCH PROFILE of Qwen3.5-397B-A17B (UD-IQ4_NL) — GGUF split across
+# both Sparks with llama.cpp RPC over CX7 RDMA.
+#
+# WHY GGUF AND NOT NVFP4: nvidia/Qwen3.5-397B-A17B-NVFP4-V2 is 226.8 GiB, which
+# splits to ~107 GiB/node against ~119 GiB of unified memory and hard-reset the
+# box four times on 2026-07-23. This quant is 180.5 GiB -> ~81/99 GiB, all 512
+# experts intact.
+#
+# Filename id = served-model-name = "qwen3.5-397b-gguf-dual-bench" — distinct
+# from the daily-driver recipe qwen3.5-397b-gguf-dual.yaml (:8105), which must
+# not be overwritten.
+#
+#   lmswitch on qwen3.5-397b-gguf-dual-bench   # wait for Ready on port 8228
+
+runtime: llama-dual
+model: "unsloth/Qwen3.5-397B-A17B-GGUF/UD-IQ4_NL/Qwen3.5-397B-A17B-UD-IQ4_NL-00001-of-00005.gguf"
+mmproj: "unsloth/Qwen3.5-397B-A17B-GGUF/mmproj-F16.gguf"
+port: 8228
+display_name: "Qwen3.5-397B-A17B (UD-IQ4_NL) [DUAL 2x SPARK BENCH]"
+
+# With -kvu the ctx is one shared pool: 8 streams x 1280 tok = ~10K cells, so
+# 32768 is ample. Deliberately below the daily driver's 65536: that figure was
+# measured at -np 1 with only ~18 GiB free on spark, and extra slots cost KV on
+# the 15 full-attention layers (the other 45 are linear/GDN, ctx-independent).
+ctx: 32768
+
+# --- RPC wiring: head here, rpc-server on gigabyte over CX7 ---
+worker_host: Gigabyte
+worker_ip: 10.100.224.1
+rpc_port: 50052
+# Keep the worker cache: without it gigabyte re-pulls its ~99 GiB share.
+rpc_cache: true
+rpc_threads: 16
+worker_rpc_bin: "~/utils/llama.cpp/build/bin/rpc-server"
+
+# Device order verified 2026-07-30 on llama.cpp b9811 (9df06805e):
+#   CUDA0 = this node (spark), RPC0 = gigabyte.
+tensor_split: "0.45,0.55"
+# --- end RPC wiring ---
+
+# 180.5 GiB cold read on the head even with the worker cache warm.
+ready_timeout: 3600
+threads: 16
+batch: 2048
+ubatch: 512
+
+# -np 8: slots >= sweep ceiling (8) — don't cap concurrency below the sweep.
+# -kvu: unified KV buffer; an explicit -np disables it, and split mode measured
+# ~30% slower per-stream (see qwen3.6-35b-q8-llamacpp results/*-np32-split.json).
+extra_args:
+  - "-fa"
+  - "on"
+  - "-ctk"
+  - "q8_0"
+  - "-ctv"
+  - "q8_0"
+  - "-np"
+  - "8"
+  - "-kvu"
+  - "--jinja"

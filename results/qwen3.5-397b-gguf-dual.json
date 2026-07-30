@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.5-397b-gguf-dual-2026-07-30T18:40:57Z",
+    "timestamp": "2026-07-30T18:40:57Z",
+    "harness_version": "0.1.0",
+    "git_commit": "a486d93",
+    "hardware": {
+      "name": "DGX Spark x2 (dual, llama.cpp RPC)",
+      "soc": "GB10 Grace Blackwell (x2, CX7 RoCE interconnect)",
+      "mem_gb": 256,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 546,
+      "fp4_tops": 2000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.5-397b-gguf-dual",
+      "model": "Qwen3.5-397B-A17B [DUAL 2xSpark]",
+      "params_b": 397,
+      "quant": "GGUF UD-IQ4_NL",
+      "backend": "llama.cpp (RPC, 2 nodes)",
+      "status": "measured",
+      "weights_gb": 180.5,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.5-397b-gguf-dual",
+      "config": {
+        "checkpoint": "unsloth/Qwen3.5-397B-A17B-GGUF/UD-IQ4_NL",
+        "topology": "llama.cpp RPC across spark (head, CUDA0) + gigabyte (RPC0) over CX7 RDMA",
+        "runtime": "llama.cpp b9811 (9df06805e)",
+        "quantization": "UD-IQ4_NL (all 512 experts)",
+        "tensor_split": "0.45,0.55",
+        "flash_attention": true,
+        "kv_cache_dtype": "q8_0",
+        "ctx": 32768,
+        "parallel": 8,
+        "kv_unified": true,
+        "speculative": "NONE (llama.cpp)",
+        "cuda_graphs": false,
+        "prefix_caching": false,
+        "note": "GGUF because the NVFP4 V2 checkpoint (226.8 GiB) does not fit two Sparks; 15 of 60 layers are full-attention, the rest linear/GDN"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 12.8,
+          "per_session_tok_s": 13.6,
+          "ttft_ms": {
+            "p50": 1863,
+            "p95": 2024,
+            "p99": 2054
+          },
+          "itl_ms": {
+            "p50": 73.7,
+            "p95": 75.6,
+            "p99": 83.8
+          },
+          "samples": 9,
+          "gpu": {
+            "temperature_c": 60,
+            "power_draw_w": 30.61
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 17.1,
+          "per_session_tok_s": 9.7,
+          "ttft_ms": {
+            "p50": 3453,
+            "p95": 3594,
+            "p99": 3602
+          },
+          "itl_ms": {
+            "p50": 103.5,
+            "p95": 106.1,
+            "p99": 114.7
+          },
+          "samples": 12,
+          "gpu": {
+            "temperature_c": 62,
+            "power_draw_w": 32.38
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 22.8,
+          "per_session_tok_s": 6.5,
+          "ttft_ms": {
+            "p50": 5876,
+            "p95": 6291,
+            "p99": 6291
+          },
+          "itl_ms": {
+            "p50": 159.8,
+            "p95": 165.3,
+            "p99": 172.9
+          },
+          "samples": 16,
+          "gpu": {
+            "temperature_c": 66,
+            "power_draw_w": 34.23
+          }
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 22.8,
+          "per_session_tok_s": 3.6,
+          "ttft_ms": {
+            "p50": 8616,
+            "p95": 12113,
+            "p99": 13226
+          },
+          "itl_ms": {
+            "p50": 276.7,
+            "p95": 291.7,
+            "p99": 302.9
+          },
+          "samples": 16,
+          "gpu": {
+            "temperature_c": 67,
+            "power_draw_w": 35.31
+          }
+        }
+      ]
+    }
+  ]
+}

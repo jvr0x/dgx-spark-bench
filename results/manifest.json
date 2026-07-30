@@ -31,6 +31,7 @@
     "minimax-m3-dual.json",
     "deepseek-v4-flash-dspark-dual.json",
     "laguna-s-2.1-nvfp4.json",
-    "laguna-s-2.1-nvfp4-nspec15.json"
+    "laguna-s-2.1-nvfp4-nspec15.json",
+    "qwen3.5-397b-gguf-dual.json"
   ]
 }
