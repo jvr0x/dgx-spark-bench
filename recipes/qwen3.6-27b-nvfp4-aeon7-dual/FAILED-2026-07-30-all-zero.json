@@ -1,0 +1,191 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.6-27b-nvfp4-aeon7-dual-2026-07-30T20:29:55Z",
+    "timestamp": "2026-07-30T20:29:55Z",
+    "harness_version": "0.1.0",
+    "git_commit": "37f86df",
+    "hardware": {
+      "name": "DGX Spark x2 (dual, TP=2)",
+      "soc": "GB10 Grace Blackwell (x2, CX7 RoCE interconnect)",
+      "mem_gb": 256,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 546,
+      "fp4_tops": 2000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.6-27b-nvfp4-aeon7-dual",
+      "model": "Qwen3.6-27B-AEON [DUAL 2xSpark]",
+      "params_b": 27,
+      "quant": "NVFP4-mixed (compressed-tensors)",
+      "backend": "vLLM 0.23 (vllm-dual, TP=2)",
+      "status": "measured",
+      "weights_gb": 26,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-27b-nvfp4-aeon7-dual",
+      "config": {
+        "checkpoint": "AEON-7/Qwen3.6-27B-AEON-Ultimate-Uncensored-NVFP4",
+        "topology": "TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE",
+        "runtime": "vLLM",
+        "image": "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1",
+        "quantization": "NVFP4-mixed (compressed-tensors)",
+        "flash_attention": true,
+        "kv_cache_dtype": "bf16 (DFlash requires)",
+        "kv_cache_memory_bytes": "34359738368 (per rank, same as solo)",
+        "ctx": 32768,
+        "max_num_seqs": 64,
+        "max_num_batched_tokens": 16384,
+        "cuda_graphs": true,
+        "speculative": "DFlash, 10 tokens, drafter=z-lab/Qwen3.6-27B-DFlash",
+        "note": "TP=2 arm of the A/B vs qwen3.6-27b-nvfp4-aeon7-bench (same knobs, one node). Matched-but-untuned: both arms run util 0.5, whereas the tuned daily profiles use 0.85 solo / 0.75 dual \u2014 this measures topology, not either config at its best."
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "gpu": {
+            "temperature_c": 62,
+            "power_draw_w": 20.23
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 654822,
+          "gpu": {
+            "temperature_c": 52,
+            "power_draw_w": 13.01
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 681479,
+          "gpu": {
+            "temperature_c": 50,
+            "power_draw_w": 12.63
+          }
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 683828,
+          "gpu": {
+            "temperature_c": 50,
+            "power_draw_w": 12.53
+          }
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 658954,
+          "gpu": {
+            "temperature_c": 50,
+            "power_draw_w": 12.56
+          }
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 633452,
+          "gpu": {
+            "temperature_c": 49,
+            "power_draw_w": 12.49
+          }
+        }
+      ]
+    }
+  ]
+}

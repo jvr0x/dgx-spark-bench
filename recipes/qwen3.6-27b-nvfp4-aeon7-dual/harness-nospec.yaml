@@ -1,0 +1,63 @@
+# Harness run config for qwen3.6-27b-nvfp4-aeon7-dual — the TP=2 arm of the
+# dual-vs-solo A/B. Runs ON the master Spark, against :8888.
+#
+#   lmswitch on qwen3.6-27b-nvfp4-aeon7-dual-bench   # Ready on port 8888
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/qwen3.6-27b-nvfp4-aeon7-dual/harness.yaml \
+#     -o ../results/qwen3.6-27b-nvfp4-aeon7-dual.json
+#   lmswitch off qwen3.6-27b-nvfp4-aeon7-dual-bench
+#
+# Same sweep, same workload, same engine knobs as
+# recipes/qwen3.6-27b-nvfp4-aeon7-bench — only the topology differs.
+
+series:
+  id: qwen3.6-27b-nvfp4-aeon7-dual-nospec
+  model: Qwen3.6-27B-AEON [DUAL 2xSpark]
+  params_b: 27
+  quant: NVFP4-mixed (compressed-tensors)
+  backend: vLLM 0.23 (vllm-dual, TP=2)
+  status: measured
+  weights_gb: 26
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.6-27b-nvfp4-aeon7-dual
+  config:
+    checkpoint: AEON-7/Qwen3.6-27B-AEON-Ultimate-Uncensored-NVFP4
+    topology: TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE
+    runtime: vLLM
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1
+    quantization: NVFP4-mixed (compressed-tensors)
+    flash_attention: true
+    kv_cache_dtype: bf16 (DFlash requires)
+    kv_cache_memory_bytes: 34359738368 (per rank, same as solo)
+    ctx: 32768
+    max_num_seqs: 64
+    max_num_batched_tokens: 16384
+    cuda_graphs: true
+    speculative: "none (DFlash deadlocks the sampler under TP=2)"
+    note: "NO-SPEC TP=2 arm of the A/B vs qwen3.6-27b-nvfp4-aeon7-bench (same knobs, one node). Matched-but-untuned: both arms run util 0.5, whereas the tuned daily profiles use 0.85 solo / 0.75 dual — this measures topology, not either config at its best."
+
+engine:
+  base_url: http://localhost:8888
+  model: qwen3.6-27b-nvfp4-aeon7-dual-nospec
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark x2 (dual, TP=2)
+  soc: GB10 Grace Blackwell (x2, CX7 RoCE interconnect)
+  mem_gb: 256
+  mem_type: LPDDR5x
+  bw_gbs: 546
+  fp4_tops: 2000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
