@@ -1,0 +1,68 @@
+# lmswitch BENCH PROFILE of Qwen3.5-122B-A10B NVFP4 (modelopt), single Spark.
+#
+# Bench deltas vs the daily profile qwen3.5-122b-nvfp4.yaml: ctx 131072 -> 32768
+# (the sweep needs 32 x 1280 tok, not 128K), max_num_seqs 16 -> 32 so slots meet
+# the sweep ceiling, port 8135 -> 8239. Everything else is held identical.
+#
+# Filename id = served-model-name = "qwen3.5-122b-nvfp4-bench".
+#
+# 78 GiB of weights on a 122 GiB box, so the KV budget is what's left after
+# weights + CUDA graphs + activations. Hybrid architecture: 48 layers, only 12
+# full_attention (the other 36 are linear_attn with fixed-size recurrent state),
+# so KV per token is cheap and 128K ctx is affordable.
+#
+# Checkpoint ships kv_cache_quant_algo=FP8, hence --kv-cache-dtype fp8.
+runtime: vllm
+model: "nvidia/Qwen3.5-122B-A10B-NVFP4"
+port: 8239
+ctx: 32768
+display_name: "Qwen3.5-122B-A10B NVFP4 [BENCH]"
+
+image: "ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1"
+entrypoint: "vllm serve"
+env:
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: "sm_121a"
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+  VLLM_MARLIN_USE_ATOMIC_ADD: "1"
+
+# NOT a utilization fraction: this build's memory estimator misreports the KV
+# budget (see spark-vllm-gpu-mem-ceiling), and an over-large budget takes the
+# whole box down rather than raising an OOM. The byte pin bypasses the estimator.
+# 8 GiB KV: the sweep needs only 32 x 1280 ~ 41K tokens, and 78 GiB of weights
+# plus CUDA graphs/activations leaves little room to be generous with. Note the
+# pin makes vLLM SKIP memory profiling entirely, so gpu_memory_utilization below
+# is inert -- nothing will catch an over-commit before the box resets.
+# Verify the boot log's "GPU KV cache size" is comfortably >= 41K tokens.
+#
+# 2026-07-30 CRASH, UNRESOLVED: this profile took the whole box down. Weights
+# loaded fine (73.17 GiB reported), torch.compile finished, and the log stops
+# dead entering CUDA graph capture; spark hard-reset (uptime confirms a 09:09
+# boot the next morning, gigabyte untouched). No OOM in dmesg -- this is the
+# reset-instead-of-OOM ceiling, with the KV pin ALREADY at 8 GiB.
+# Unaccounted memory at capture time: 51 cudagraph capture sizes up to batch
+# 512, a 16384-token multimodal encoder cache profiled with a full-size image,
+# and the hybrid model's per-sequence mamba/linear-attn state at
+# max_num_seqs 32 -- on top of 73 GiB of weights.
+# Before retrying, cut the capture cost, not the KV pin: enforce_eager: true
+# for a first datapoint, or max_num_seqs 32 -> 8 plus an explicit small
+# --cudagraph-capture-sizes list. Do not re-run as-is.
+gpu_memory_utilization: 0.9
+max_num_seqs: 32
+tool_call_parser: "qwen3_xml"
+reasoning_parser: "qwen3"
+attention_backend: "flashinfer"
+trust_remote_code: true
+enforce_eager: false
+
+extra_args:
+  - "--kv-cache-memory-bytes"
+  - "8589934592"
+  - "--quantization"
+  - "modelopt"
+  - "--kv-cache-dtype"
+  - "fp8"
+  - "--max-num-batched-tokens"
+  - "8192"
+  - "--enable-chunked-prefill"
+  - "--enable-prefix-caching"

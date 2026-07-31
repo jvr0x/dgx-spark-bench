@@ -1,0 +1,60 @@
+# Harness run config for the qwen3.5-122b-nvfp4 recipe (single Spark).
+#
+#   lmswitch on qwen3.5-122b-nvfp4-bench      # wait for Ready on port 8239
+#   cd ~/dev/dgx-spark-bench/harness
+#   .venv/bin/python bench.py ../recipes/qwen3.5-122b-nvfp4/harness.yaml \
+#     -o ../results/qwen3.5-122b-nvfp4.json
+#   lmswitch off qwen3.5-122b-nvfp4-bench
+
+series:
+  id: qwen3.5-122b-nvfp4
+  model: Qwen3.5-122B-A10B
+  params_b: 122
+  quant: NVFP4 (modelopt) + fp8 KV
+  backend: vLLM 0.25 (AEON build)
+  status: measured
+  weights_gb: 78
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.5-122b-nvfp4
+  config:
+    checkpoint: nvidia/Qwen3.5-122B-A10B-NVFP4
+    runtime: vLLM
+    image: ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1
+    quantization: modelopt NVFP4 (group_size 16)
+    kv_cache_dtype: fp8
+    kv_cache_memory_bytes: 8589934592
+    flash_attention: flashinfer
+    ctx: 32768
+    max_num_seqs: 32
+    max_num_batched_tokens: 8192
+    cuda_graphs: true
+    chunked_prefill: true
+    prefix_caching: true
+    speculative: "none (checkpoint carries mtp_num_hidden_layers=1; MTP not enabled in this run)"
+    note: "48 layers, 12 full-attention + 36 linear-attn; 256 experts, 8 active"
+
+engine:
+  base_url: http://localhost:8239
+  model: qwen3.5-122b-nvfp4-bench
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
