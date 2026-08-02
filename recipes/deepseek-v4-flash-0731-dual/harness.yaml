@@ -1,0 +1,86 @@
+# Harness run config for the deepseek-v4-flash-0731-dual recipe (2x DGX Spark, TP=2).
+# Runs ON the master Spark, against the as-served profile on :8888.
+#
+#   lmswitch on deepseek-v4-flash-0731-dual   # wait for Ready on port 8888 (both nodes)
+#   cd ~/dev/dgx-spark-bench/harness
+#   taskset -c 0,1 .venv/bin/python bench.py \
+#     ../recipes/deepseek-v4-flash-0731-dual/harness.yaml \
+#     -o ../results/deepseek-v4-flash-0731-dual.json
+#
+# 2026-08-02: first sweep of the 0731 checkpoint lane (Anemll 0.1.1 image,
+# vLLM 0.25.2.dev0+g752a3a504, spec-decode K=5 probabilistic, regular CUDA
+# graphs via VLLM_USE_BREAKABLE_CUDAGRAPH=0). Distinct from
+# deepseek-v4-flash-dspark-dual: different checkpoint (0731 vs DSpark preview),
+# different memory shape (util 0.80 / max_num_seqs 6 vs 0.85 / 12).
+#
+# As-served, values taken verbatim from the live lmswitch recipe — nothing here
+# is a raised bench profile.
+
+series:
+  id: deepseek-v4-flash-0731-dual
+  model: DeepSeek-V4-Flash 0731 1M [DUAL 2xSpark]
+  quant: NVFP4-DS-MLA KV + b12x MoE + DSpark spec-decode (K=5)
+  backend: vLLM 0.25.2.dev0+g752a3a504 (Anemll dspark-vllm-gx10 0.1.1, TP=2)
+  status: measured
+  weights_gb: 155.4
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/deepseek-v4-flash-0731-dual
+  config:
+    checkpoint: deepseek-ai/DeepSeek-V4-Flash-0731 (rev 9e165c30e2704aec5d9d593cce3eebd58bbef1cb)
+    topology: TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE
+    image: ghcr.io/anemll/dspark-vllm-gx10:0.1.1
+    moe_backend: flashinfer_b12x
+    kv_cache_dtype: nvfp4_ds_mla
+    speculative: dspark, 5 tokens (probabilistic draft sampling, checkpoint dspark_block_size=5)
+    gpu_memory_utilization: 0.80
+    kv_cache_memory_bytes: "unpinned (profiler-sized; 2,031,837-token pool at boot)"
+    max_num_seqs: 6
+    max_model_len: 1048576
+    block_size: 256
+    max_num_batched_tokens: 8192
+    cudagraphs: "on, regular (VLLM_USE_BREAKABLE_CUDAGRAPH=0; enforce_eager off)"
+    max_cudagraph_capture_size: "requested 36, truncated by the engine to 32 -> [1,2,4,8,16,24,32]"
+    async_scheduling: true
+    chunked_prefill: true
+    prefix_caching: "on (defeated by unique prompts)"
+    flashinfer_autotune: true
+    enable_thinking: false
+    encoder: "0731 encoder installed into vLLM at boot by dspark-0731-bootstrap.sh (DSPARK_ENCODING_FILE=/model/encoding/encoding_dsv4.py)"
+    note: "1M-ctx checkpoint benched at a 256-token prompt (short-context roofline, not a long-context test). WORKLOAD DIFFERS FROM THE REST OF THIS REPO: draftable output, natural stop, temp 0.6 -- chosen because this profile's engine step rate is a constant ~15.2/s and throughput is 15.2 x accepted-tokens-per-step, so the repo's default forced-output workload measures it at ~30% acceptance (46.9 tok/s N=1) while real use runs 75-98%. Not directly comparable to forced-output series; see the recipe README for the decomposition and the forced-shape run."
+
+hardware:
+  name: DGX Spark x2 (dual, TP=2)
+  soc: GB10 Grace Blackwell (x2, CX7 RoCE interconnect)
+  mem_gb: 256
+  mem_type: LPDDR5x
+  bw_gbs: 546
+  fp4_tops: 2000
+
+# NOT this repo's default workload. Deliberate: on a speculative-decoding profile
+# the default (filler prompt, generation forced past EOS) lands near the draft
+# acceptance floor (~30%) and measures ~40% below what the profile does in use.
+# This workload asks for the highly-draftable output MiaAI-Lab's own
+# benchmark-0731.py uses, and lets the model stop naturally, so the published
+# number reflects the served experience. The cost is comparability: this series
+# is NOT directly comparable to the forced-output series elsewhere in results/.
+# See the recipe README for the full decomposition.
+workload:
+  name: chat-draftable
+  prompt_tokens: 256
+  output_tokens: 600
+  instruction: "Return exactly 128 numbered lowercase English words, then stop."
+
+sweep:
+  # max_num_seqs is 6 on this profile; past that the sweep would measure queueing.
+  concurrencies: [1, 2, 4, 6]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300
+
+engine:
+  base_url: http://localhost:8888              # harness runs on the master Spark -> localhost
+  model: deepseek-v4-flash-0731-dual            # MUST equal the dual yaml's served-model-name
+  api_key: dummy
+  # Upstream's sampling, and no ignore_eos/min_tokens: the model stops when it is done.
+  extra_body:
+    temperature: 0.6
+    top_p: 0.95

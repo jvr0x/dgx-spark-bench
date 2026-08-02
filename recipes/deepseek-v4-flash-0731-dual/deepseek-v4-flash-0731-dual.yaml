@@ -1,0 +1,136 @@
+# DeepSeek V4 Flash 0731 — TP=2 across spark + gigabyte over CX7 (1M ctx).
+#
+# Ported verbatim (values, not plumbing) from the MiaAI-Lab two-Spark recipe:
+# https://github.com/MiaAI-Lab/DeepSeek-v4-Flash-DSpark-2x-DGX-Spark
+# (docker-compose.dspark.yml + docs/DEEPSEEK_V4_FLASH_0731.md, unreleased
+# CHANGELOG entry making 0731 the default checkpoint).
+#
+# Supersedes deepseek-v4-flash-dspark-dual.yaml: different checkpoint
+# (0731 vs the DSpark preview), different engine (Anemll 0.1.1 vs the
+# r0b0tlab v0.26 SM121 package). Same DeepseekV4ForCausalLM architecture and
+# DSpark speculative structure; text-only, no vision tower.
+#
+# Their published two-Spark numbers on this exact profile: 75.4 tok/s C1 decode
+# @256-token prompt, 191.2 tok/s aggregate @c6, 1,857 tok/s prefill on a 14K
+# probe, plus a completed 900,000-token acceptance request (1,028s TTFT) that
+# proves the 1M profile beyond config metadata. With regular (non-breakable)
+# CUDA graphs: 95.9 tok/s C1 warm median, 340.5 tok/s aggregate @c6.
+#
+# Weights live ONCE on gigabyte at ~/models/deepseek-ai/DeepSeek-V4-Flash-0731
+# (revision 9e165c30e2704aec5d9d593cce3eebd58bbef1cb); spark reads them over the
+# NFS mount. The image must be `docker pull`ed on BOTH nodes (it already is).
+runtime: vllm-dual
+image: "ghcr.io/anemll/dspark-vllm-gx10:0.1.1"
+model: "deepseek-ai/DeepSeek-V4-Flash-0731"
+model_path: "~/models-gigabyte/deepseek-ai/DeepSeek-V4-Flash-0731"
+worker_model_path: "~/models/deepseek-ai/DeepSeek-V4-Flash-0731"
+port: 8888
+display_name: "DeepSeek-V4-Flash 0731 1M [DUAL 2x SPARK]"
+
+# The image ENTRYPOINT is not `vllm serve`, and 0731 needs its own encoder
+# installed into vLLM before import on both ranks — see the script header.
+entrypoint: "/dspark-bootstrap.sh"
+
+worker_host: Gigabyte
+master_addr: 10.100.224.2
+worker_ip: 10.100.224.1
+master_port: 25000
+nccl:
+  ifname: enp1s0f1np1
+  hca: rocep1s0f1
+  gid_index: 3
+
+ctx: 1048576
+max_num_seqs: 6
+# 0.80, not the 0.845 this recipe used before MTP went 3 -> 5: upstream lowered
+# it to leave headroom for cudagraph capture at the larger capture size
+# (max_num_seqs * (MTP + 1) = 36). The two move together — do not raise one
+# without the other. No --kv-cache-memory-bytes: the profiler sizes the pool,
+# which is how the 900K acceptance run was measured.
+gpu_memory_utilization: 0.80
+# Load-bearing: lmswitch's `_vllm_args` defaults --enforce-eager ON (single-node
+# convention). This profile's whole decode advantage is CUDA graphs.
+enforce_eager: false
+shm_size: 64g
+# Cold FlashInfer autotune + 48-shard TP=2 load over NFS on first start.
+ready_timeout: 3600
+
+extra_mounts:
+  - "~/utils/lmswitch/ai-models/scripts/dspark-0731-bootstrap.sh:/dspark-bootstrap.sh:ro"
+  # Node-local caches. These must NOT live on the shared NFS export or the two
+  # nodes trample each other's artifacts; separate dirs from the v0.25/v0.26
+  # lanes so the engines never read each other's.
+  - "~/.cache/vllm-dspark-0731:/root/.cache/vllm"
+  - "~/.cache/dspark-0731-flashinfer:/cache/flashinfer-workspace"
+  # FlashInfer/TileLang JIT scratch (upstream's DSPARK_TMP_HOST) — per-node.
+  - "~/.cache/dspark-0731-tmp:/tmp"
+
+env:
+  HF_HUB_OFFLINE: 1
+  TRANSFORMERS_OFFLINE: 1
+  HF_HUB_DISABLE_XET: 1
+  # The checkpoint is bind-mounted at /model, so the upstream HF-cache glob
+  # would find nothing. Without this the bootstrap silently no-ops and 0731
+  # reasoning-effort / tool-argument semantics are wrong on a clean-looking boot.
+  DSPARK_ENCODING_FILE: /model/encoding/encoding_dsv4.py
+  VLLM_ALLOW_LONG_MAX_MODEL_LEN: 1
+  VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: 256
+  VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: 0
+  VLLM_USE_FLASHINFER_SAMPLER: 1
+  # 0, not 1: Anemll 0.1.1 auto-enables breakable graphs for DeepSeek V4 when
+  # this key is absent. Opting out keeps regular CUDA graphs (not eager) and is
+  # worth +28.6% C1 decode / +13.1% C2 aggregate in upstream's matched probe.
+  VLLM_USE_BREAKABLE_CUDAGRAPH: 0
+  VLLM_USE_B12X_MOE: 1
+  VLLM_B12X_W4A16_FORCE_BLOCKS_PER_SM: 0
+  VLLM_B12X_W4A16_FORCE_BLOCKS_MAX_M: 16
+  TORCH_CUDA_ARCH_LIST: 12.1a
+  FLASHINFER_CUDA_ARCH_LIST: 12.1a
+  # Targets CuTeDSL kernel compilation at GB10; without it b12x/CuTeDSL may JIT
+  # a slower W4A16 fused MoE path mid-inference instead of GB10-native kernels.
+  CUTE_DSL_ARCH: sm_121a
+  FLASHINFER_DISABLE_VERSION_CHECK: 1
+  FLASHINFER_WORKSPACE_BASE: /cache/flashinfer-workspace
+  TILELANG_CLEANUP_TEMP_FILES: 1
+  DG_JIT_USE_NVRTC: 0
+  DG_JIT_NVCC_COMPILER: /usr/local/cuda/bin/nvcc
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+  NCCL_CROSS_NIC: 1
+  NCCL_IGNORE_CPU_AFFINITY: 1
+  NCCL_DEBUG: WARN
+  NCCL_NVLS_ENABLE: 0
+  NCCL_IB_ADDR_FAMILY: AF_INET
+  NCCL_IB_ROCE_VERSION_NUM: 2
+  # NCCL_NET/IB_DISABLE/IB_HCA/SOCKET_IFNAME/GLOO_SOCKET_IFNAME/TP_SOCKET_IFNAME
+  # /IB_GID_INDEX/CUMEM_ENABLE/VLLM_HOST_IP are emitted by the vllm-dual runtime
+  # from the `nccl:` block above.
+
+extra_args:
+  - "--trust-remote-code"
+  - "--pipeline-parallel-size=1"
+  - "--kv-cache-dtype=nvfp4_ds_mla"
+  - "--block-size=256"
+  - "--max-num-batched-tokens=8192"
+  # max_num_seqs * (MTP + 1) = 6 * 6, upstream's formula. Explicit because the
+  # engine default is min(max_num_seqs * 2, 512) = 12 here, which is not this
+  # profile's shape. Note the engine then truncates 36 -> 32 (capture sizes end
+  # up [1,2,4,8,16,24,32]) and says so at boot; upstream hits the same ceiling,
+  # and the util 0.80 headroom is sized for it either way.
+  - "--max-cudagraph-capture-size=36"
+  - "--enable-prefix-caching"
+  - "--async-scheduling"
+  - "--enable-chunked-prefill"
+  # k=5 because the checkpoint's dspark_block_size is 5; k<5 silently truncates
+  # draft blocks on this image. draft_sample_method is upstream's, not a default.
+  - "--speculative-config={\"method\":\"dspark\",\"num_speculative_tokens\":5,\"draft_sample_method\":\"probabilistic\"}"
+  - "--tokenizer-mode=deepseek_v4"
+  - "--distributed-executor-backend=mp"
+  - "--moe-backend=flashinfer_b12x"
+  - "--enable-flashinfer-autotune"
+  - "--tool-call-parser=deepseek_v4"
+  - "--enable-auto-tool-choice"
+  - "--reasoning-parser=deepseek_v4"
+  - "--reasoning-config={\"reasoning_parser\":\"deepseek_v4\",\"reasoning_start_str\":\"<think>\",\"reasoning_end_str\":\"</think>\"}"
+  # Local serving preference: daily-driver default stays non-thinking.
+  - "--default-chat-template-kwargs={\"thinking\":false}"
+  - "--generation-config=vllm"

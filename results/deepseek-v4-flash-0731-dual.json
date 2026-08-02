@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "deepseek-v4-flash-0731-dual-2026-08-02T16:15:54Z",
+    "timestamp": "2026-08-02T16:15:54Z",
+    "harness_version": "0.1.0",
+    "git_commit": "e3fc74d",
+    "hardware": {
+      "name": "DGX Spark x2 (dual, TP=2)",
+      "soc": "GB10 Grace Blackwell (x2, CX7 RoCE interconnect)",
+      "mem_gb": 256,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 546,
+      "fp4_tops": 2000
+    },
+    "workload": {
+      "name": "chat-draftable",
+      "prompt_tokens": 256,
+      "output_tokens": 600,
+      "instruction": "Return exactly 128 numbered lowercase English words, then stop.",
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        6
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "deepseek-v4-flash-0731-dual",
+      "model": "DeepSeek-V4-Flash 0731 1M [DUAL 2xSpark]",
+      "quant": "NVFP4-DS-MLA KV + b12x MoE + DSpark spec-decode (K=5)",
+      "backend": "vLLM 0.25.2.dev0+g752a3a504 (Anemll dspark-vllm-gx10 0.1.1, TP=2)",
+      "status": "measured",
+      "weights_gb": 155.4,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/deepseek-v4-flash-0731-dual",
+      "config": {
+        "checkpoint": "deepseek-ai/DeepSeek-V4-Flash-0731 (rev 9e165c30e2704aec5d9d593cce3eebd58bbef1cb)",
+        "topology": "TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE",
+        "image": "ghcr.io/anemll/dspark-vllm-gx10:0.1.1",
+        "moe_backend": "flashinfer_b12x",
+        "kv_cache_dtype": "nvfp4_ds_mla",
+        "speculative": "dspark, 5 tokens (probabilistic draft sampling, checkpoint dspark_block_size=5)",
+        "gpu_memory_utilization": 0.8,
+        "kv_cache_memory_bytes": "unpinned (profiler-sized; 2,031,837-token pool at boot)",
+        "max_num_seqs": 6,
+        "max_model_len": 1048576,
+        "block_size": 256,
+        "max_num_batched_tokens": 8192,
+        "cudagraphs": "on, regular (VLLM_USE_BREAKABLE_CUDAGRAPH=0; enforce_eager off)",
+        "max_cudagraph_capture_size": "requested 36, truncated by the engine to 32 -> [1,2,4,8,16,24,32]",
+        "async_scheduling": true,
+        "chunked_prefill": true,
+        "prefix_caching": "on (defeated by unique prompts)",
+        "flashinfer_autotune": true,
+        "enable_thinking": false,
+        "encoder": "0731 encoder installed into vLLM at boot by dspark-0731-bootstrap.sh (DSPARK_ENCODING_FILE=/model/encoding/encoding_dsv4.py)",
+        "note": "1M-ctx checkpoint benched at a 256-token prompt (short-context roofline, not a long-context test). WORKLOAD DIFFERS FROM THE REST OF THIS REPO: draftable output, natural stop, temp 0.6 -- chosen because this profile's engine step rate is a constant ~15.2/s and throughput is 15.2 x accepted-tokens-per-step, so the repo's default forced-output workload measures it at ~30% acceptance (46.9 tok/s N=1) while real use runs 75-98%. Not directly comparable to forced-output series; see the recipe README for the decomposition and the forced-shape run."
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 89.8,
+          "per_session_tok_s": 95.5,
+          "ttft_ms": {
+            "p50": 327,
+            "p95": 340,
+            "p99": 344
+          },
+          "itl_ms": {
+            "p50": 64.5,
+            "p95": 68.9,
+            "p99": 76.9
+          },
+          "samples": 35,
+          "gpu": {
+            "temperature_c": 72,
+            "power_draw_w": 42.92
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 135.1,
+          "per_session_tok_s": 71.8,
+          "ttft_ms": {
+            "p50": 422,
+            "p95": 453,
+            "p99": 481
+          },
+          "itl_ms": {
+            "p50": 80.0,
+            "p95": 90.2,
+            "p99": 260.2
+          },
+          "samples": 56,
+          "gpu": {
+            "temperature_c": 74,
+            "power_draw_w": 44.4
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 192.9,
+          "per_session_tok_s": 51.8,
+          "ttft_ms": {
+            "p50": 502,
+            "p95": 667,
+            "p99": 677
+          },
+          "itl_ms": {
+            "p50": 105.1,
+            "p95": 126.0,
+            "p99": 287.4
+          },
+          "samples": 87,
+          "gpu": {
+            "temperature_c": 74,
+            "power_draw_w": 41.7
+          }
+        },
+        {
+          "concurrency": 6,
+          "agg_tok_s": 233.2,
+          "per_session_tok_s": 42.1,
+          "ttft_ms": {
+            "p50": 560,
+            "p95": 752,
+            "p99": 833
+          },
+          "itl_ms": {
+            "p50": 128.2,
+            "p95": 276.0,
+            "p99": 294.1
+          },
+          "samples": 106,
+          "gpu": {
+            "temperature_c": 74,
+            "power_draw_w": 41.72
+          }
+        }
+      ]
+    }
+  ]
+}
