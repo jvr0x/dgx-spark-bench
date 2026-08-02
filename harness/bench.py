@@ -43,6 +43,16 @@ class Workload:
     name: str
     prompt_tokens: int
     output_tokens: int
+    # Optional trailing instruction. Empty (the default) keeps the prompt byte-identical
+    # to every previously published series. Setting it changes what the model is asked to
+    # write, which on speculative-decoding backends changes draft acceptance and therefore
+    # decode rate — a series using it is NOT comparable to one that does not.
+    instruction: str = ""
+
+    def __post_init__(self) -> None:
+        """Rejects a non-string instruction, which would otherwise be silently formatted in."""
+        if not isinstance(self.instruction, str):
+            raise TypeError(f"workload.instruction must be a string, got {type(self.instruction).__name__}")
 
     def prompt(self, nonce: str = "") -> str:
         """Returns a deterministic prompt sized to roughly ``prompt_tokens`` tokens.
@@ -56,7 +66,8 @@ class Workload:
         lead = f"[bench {nonce}] " if nonce else ""
         word = "benchmark "
         n_words = max(1, int(self.prompt_tokens * 0.75))
-        return (lead + "Summarise the following text.\n\n" + word * n_words).strip()
+        tail = f"\n\n{self.instruction}" if self.instruction else ""
+        return (lead + "Summarise the following text.\n\n" + word * n_words).strip() + tail
 
 
 @dataclass

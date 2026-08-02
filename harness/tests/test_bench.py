@@ -24,6 +24,28 @@ async def _one(url: str) -> "RequestResult":  # noqa: F821 - return type documen
         return await stream_request(c, EngineTarget(base_url=url, model="m"), WL)
 
 
+def test_expected_instruction_appended_after_filler():
+    """A workload instruction lands at the end of the prompt, after the filler body."""
+    wl = Workload(name="chat", prompt_tokens=16, output_tokens=8,
+                  instruction="Return exactly 128 numbered lowercase English words, then stop.")
+    p = wl.prompt("abc")
+    assert p.startswith("[bench abc] Summarise the following text.")
+    assert p.endswith("\n\nReturn exactly 128 numbered lowercase English words, then stop.")
+    assert "benchmark " in p
+
+
+def test_edge_default_instruction_leaves_prompt_unchanged():
+    """Omitting the instruction reproduces the prompt every published series was measured with."""
+    assert Workload(name="chat", prompt_tokens=16, output_tokens=8).prompt("x") == WL.prompt("x")
+    assert not WL.prompt("x").endswith("\n")
+
+
+def test_failure_instruction_must_be_a_string():
+    """A non-string instruction fails loudly at prompt build rather than silently formatting."""
+    with pytest.raises(TypeError):
+        Workload(name="chat", prompt_tokens=16, output_tokens=8, instruction=42)
+
+
 @pytest.mark.asyncio
 async def test_expected_metrics():
     """Happy path: TTFT clocked at first content (role delta ignored), ITLs and usage correct."""
