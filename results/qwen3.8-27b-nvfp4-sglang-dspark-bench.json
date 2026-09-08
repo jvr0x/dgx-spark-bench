@@ -1,0 +1,183 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.8-27b-nvfp4-sglang-dspark-bench-2026-08-26T12:00:01Z",
+    "timestamp": "2026-08-26T12:00:01Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b86c1f7",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.8-27b-nvfp4-sglang-dspark-bench",
+      "model": "Qwen3.8-27B",
+      "params_b": 27,
+      "quant": "NVFP4-mixed (ModelOpt)",
+      "backend": "SGLang nightly-dev-20260814-c4271c3f",
+      "status": "measured",
+      "weights_gb": 23.6,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/qwen3.8-27b-nvfp4-sglang",
+      "config": {
+        "checkpoint": "RadixArk/Qwen3.8-27B-NVFP4",
+        "runtime": "SGLang",
+        "quantization": "NVFP4-mixed (ModelOpt, FP8 linear-attn projections)",
+        "architecture": "dense hybrid GDN VLM, 48 linear-attention + 16 full-attention layers",
+        "attention_backend": "flashinfer",
+        "kv_cache_dtype": "fp8_e4m3",
+        "ctx": 32768,
+        "max_running_requests": 64,
+        "speculative": "DSpark block drafting, block size 7, 8 draft tokens, drafter=RadixArk/Qwen3.8-27B-DSpark (bf16, 2.6 GB)",
+        "note": "Same target weights, same image, same sweep as qwen3.8-27b-nvfp4-sglang-mtp-bench; the drafter is the only engine-side difference. See caveat \u2014 this is NOT a workload-neutral A/B.",
+        "caveat": "Forced 256-token output (ignore_eos + min_tokens) puts both drafters off-distribution. A longer speculative window loses more per rejection, so this workload structurally favours MTP's 4-token chain over DSpark's 7-token block \u2014 the two are NOT penalised equally. Upstream measured DSpark ahead on natural code generation, a different acceptance regime. These numbers are not evidence that DSpark is slower in general."
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 21.3,
+          "per_session_tok_s": 22.8,
+          "ttft_ms": {
+            "p50": 423,
+            "p95": 443,
+            "p99": 444
+          },
+          "itl_ms": {
+            "p50": 107.1,
+            "p95": 213.4,
+            "p99": 219.7
+          },
+          "samples": 15,
+          "gpu": {
+            "temperature_c": 68,
+            "power_draw_w": 41.5
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 41.2,
+          "per_session_tok_s": 21.6,
+          "ttft_ms": {
+            "p50": 320,
+            "p95": 538,
+            "p99": 742
+          },
+          "itl_ms": {
+            "p50": 112.8,
+            "p95": 224.4,
+            "p99": 270.2
+          },
+          "samples": 29,
+          "gpu": {
+            "temperature_c": 69,
+            "power_draw_w": 41.6
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 71.1,
+          "per_session_tok_s": 18.9,
+          "ttft_ms": {
+            "p50": 531,
+            "p95": 625,
+            "p99": 795
+          },
+          "itl_ms": {
+            "p50": 125.3,
+            "p95": 249.1,
+            "p99": 405.8
+          },
+          "samples": 50,
+          "gpu": {
+            "temperature_c": 71,
+            "power_draw_w": 42.36
+          }
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 115.2,
+          "per_session_tok_s": 14.9,
+          "ttft_ms": {
+            "p50": 602,
+            "p95": 907,
+            "p99": 1026
+          },
+          "itl_ms": {
+            "p50": 150.6,
+            "p95": 317.5,
+            "p99": 464.4
+          },
+          "samples": 81,
+          "gpu": {
+            "temperature_c": 76,
+            "power_draw_w": 43.88
+          }
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 143.6,
+          "per_session_tok_s": 9.9,
+          "ttft_ms": {
+            "p50": 711,
+            "p95": 1614,
+            "p99": 4159
+          },
+          "itl_ms": {
+            "p50": 200.0,
+            "p95": 527.0,
+            "p99": 821.0
+          },
+          "samples": 101,
+          "gpu": {
+            "temperature_c": 75,
+            "power_draw_w": 43.01
+          }
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 182.0,
+          "per_session_tok_s": 6.0,
+          "ttft_ms": {
+            "p50": 1635,
+            "p95": 15677,
+            "p99": 15678
+          },
+          "itl_ms": {
+            "p50": 306.4,
+            "p95": 971.7,
+            "p99": 1873.1
+          },
+          "samples": 128,
+          "gpu": {
+            "temperature_c": 75,
+            "power_draw_w": 43.78
+          }
+        }
+      ]
+    }
+  ]
+}

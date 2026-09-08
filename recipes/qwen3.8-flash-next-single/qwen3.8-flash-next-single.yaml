@@ -1,0 +1,110 @@
+# lmswitch BENCH PROFILE of qwen3.8-flash-next-single.
+# Port of https://github.com/MiaAI-Lab/Qwen3.8-Flash-Next-Single-DGX-Spark
+# (Mia's single-Spark TP=1 recipe) onto lmswitch's `vllm` runtime.
+# Upstream serves via start.sh; everything it does that lmswitch can express
+# is here as recipe keys. Values below are the BENCH profile (matches
+# harness.yaml in this dir): ctx 262144, MTP k=3, FP8 KV, max_num_seqs 4.
+#
+# Filename id = served-model-name = "qwen3.8-flash-next-single" (what the
+# harness targets). Registered into lmswitch via symlink:
+#   ln -s "$PWD/qwen3.8-flash-next-single.yaml" ~/utils/lmswitch/ai-models/
+# then:
+#   lmswitch on qwen3.8-flash-next-single
+#
+# PREREQUISITES (weights are on disk as of 2026-09-07, rev 925d7be6):
+#   1. Download done (tmux `qwen38-dl` did it): HF_HOME=~/models/qwen38-flashnext-hf
+#   2. If the checkpoint revision ever changes, update `model:` above to the
+#      new snapshots/<REV> path (see its comment for why a symlink won't do).
+#   3. Materialize the patched sources + packed PLE table (one-time, needs the
+#      weights present). From the upstream checkout, WITHOUT launching:
+#        cd ~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark
+#        HF_HOME=~/models/qwen38-flashnext-hf PORT=8890 ./start.sh --no-launch
+#      This extracts pristine sources from the image, writes files/*_patched.py
+#      + files/ple_offload/, and builds ~/.cache/vllm/ple_cache/. The mounts
+#      below then serve statically - no start.sh needed at boot.
+#
+# UNVALIDATED: written 2026-09-06 from start.sh inspection, never booted.
+# Validate with `lmswitch on qwen3.8-flash-next-single` once 1-3 are done.
+#
+# Bench deltas vs upstream .env daily profile: PORT 8888 -> 8890 (harness),
+# KV_TARGET_GIB -> 20 (see gpu_memory_utilization). Everything else as-served.
+
+runtime: vllm
+# Pinned snapshot path (NOT the ~/models/qwen38-flash-next-nvfp4 convenience
+# symlink: docker resolves symlinked mount sources, which re-bases the
+# snapshot's relative ../../blobs links and dangles config.json — vLLM then
+# rejects the directory. The real path below keeps the ../../blobs links
+# resolving inside the same-path HF mount under extra_mounts).
+model: "qwen38-flashnext-hf/hub/models--Mia-AiLab--Qwen3.8-Flash-Next-NVFP4/snapshots/925d7be6c14c6c9442ef83e8f05b5a3c39304f69"
+port: 8890
+ctx: 262144                        # --max-model-len; native rope, YaRN off (upstream YARN=0 default)
+display_name: "Qwen3.8-Flash-Next NVFP4 [BENCH single-Spark]"
+
+image: "vllm/vllm-openai:qwen38-flash-next"   # upstream IMAGE (no entrypoint override:
+                                             # image default entrypoint takes argv, as in start.sh)
+
+# Derived GMU, upstream Step 2 arithmetic with the BENCH knobs, confirmed
+# 2026-09-07 by `./start.sh --no-launch` against the real checkpoint
+# (budget 100.93 GiB / 121.69 pool = 0.829; ~22 GiB KV / ~1.38M tokens).
+# RECOMPUTE if the checkpoint revision changes.
+gpu_memory_utilization: 0.829
+max_num_seqs: 4                    # bench knob — >= sweep ceiling [1,2,4]
+reasoning_parser: "qwen3"
+tool_call_parser: "qwen3_coder"    # lmswitch also emits --enable-auto-tool-choice with this
+load_format: "safetensors"
+enforce_eager: false               # as-served: CUDAGRAPH_MODE=FULL_DECODE_ONLY (see compilation-config)
+ready_timeout: 1200                # 99 GiB load + PLE mmap; upstream notes ~10-12 min to /health
+
+env:
+  HF_HUB_OFFLINE: "1"
+  TRANSFORMERS_OFFLINE: "1"
+  HF_HOME: "/root/.cache/huggingface"
+  VLLM_PLE_CPU_OFFLOAD: "1"        # REQUIRED: PLE table served from memory-mapped CPU file
+  VLLM_PLE_PACKED_TABLE_DIR: "/root/.cache/vllm/ple_cache/Mia-AiLab--Qwen3.8-Flash-Next-NVFP4"
+  VLLM_PLE_OFFLOAD_STEP_TIMEOUT: "300"
+
+extra_mounts:
+  # HF cache under ~/models (this session's download layout) mapped where the
+  # image expects it. Listed AFTER lmswitch's own ~/.cache/huggingface/hub
+  # mount, so it shadows that subpath inside the container.
+  - "~/models/qwen38-flashnext-hf:/root/.cache/huggingface"
+  # Same-path mount: the snapshot dir is relative symlinks (../../blobs), and
+  # lmswitch only bind-mounts `model:` itself — without this, config.json
+  # dangles and vLLM rejects the directory. (Mounting the whole HF_HOME keeps
+  # every snapshot revision resolvable.)
+  - "~/models/qwen38-flashnext-hf:/home/jvr0x/models/qwen38-flashnext-hf:ro"
+  # PLE packed table (~27 GiB, built once by prereq 3).
+  - "~/.cache/vllm:/root/.cache/vllm"
+  # Patched sources (prereq 3; VLLM_PKG=/usr/local/lib/python3.12/dist-packages/vllm).
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/ple_layer_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/ple_layer.py:ro"
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/modelopt_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/layers/quantization/modelopt.py:ro"
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/qsa_ops_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/ops/qsa.py:ro"
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/qsa_nvidia_patched.py:/usr/local/lib/python3.12/dist-packages/vllm/models/qwen3_8_flash_next/nvidia/qsa.py:ro"
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/ple_offload/ple_offload_layer.py:/usr/local/lib/python3.12/dist-packages/vllm/model_executor/layers/ple_offload_layer.py:ro"
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/ple_offload/connector.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/ple_offload/connector.py:ro"
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/ple_offload/worker.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/ple_offload/worker.py:ro"
+  - "~/dev/miaai-lab/Qwen3.8-Flash-Next-Single-DGX-Spark/files/ple_offload/protocol.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/ple_offload/protocol.py:ro"
+
+extra_args:
+  - "--safetensors-load-strategy"
+  - "lazy"
+  - "--enable-chunked-prefill"
+  - "--max-num-batched-tokens"
+  - "2048"
+  - "--kv-cache-dtype"
+  - "fp8"
+  - "--distributed-executor-backend"
+  - "mp"                           # REQUIRED for the PLE offload worker (multiproc executor)
+  - "--speculative-config"
+  - '{"method":"mtp","num_speculative_tokens":3}'
+  - "--compilation-config"
+  - '{"mode":0,"cudagraph_mode":"FULL_DECODE_ONLY"}'
+
+# EXPECTED (upstream .env daily profile, same stack minus PORT/KV_TARGET):
+# first launch builds the ~27 GiB PLE table beside the checkpoint (~130 GiB
+# disk total), then serves :8890 as `qwen3.8-flash-next-single`.
+#
+# NOT PORTED: start.sh's Step 2 co-tenant guard (comfy-h3 on :8888 — moot at
+# 8890), the memwatch watchdog (logs/memwatch), REQUIRE_IDLE_GPU preflight,
+# and --memory cgroup cap (lmswitch does not set one; stop other models first:
+# unified-memory oversubscription hard-resets the box).

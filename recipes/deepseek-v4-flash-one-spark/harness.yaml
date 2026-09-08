@@ -1,0 +1,60 @@
+# Harness run config for the DeepSeek V4 Flash 0731 single-Spark recipe (Mia's).
+# Runs ON the Spark, against the sparkinfer vLLM server on :8889.
+#
+#   cd ~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark
+#   MAX_NUM_SEQS=4 SERVING_PORT=8889 ./start.sh
+#   cd ~/dev/dgx-spark-bench/harness
+#   taskset -c 0,1 .venv/bin/python bench.py \
+#     ../recipes/deepseek-v4-flash-one-spark/harness.yaml \
+#     -o ../results/deepseek-v4-flash-one-spark.json
+#
+# Recipe: https://github.com/MiaAI-Lab/DeepSeek-v4-Flash-One-DGX-Spark
+# NOTE: recipe default is MAX_NUM_SEQS=1 (deep-context). The sweep needs
+# concurrency, so override to 4 and drop MAX_MODEL_LEN if KV pool is short.
+
+series:
+  id: deepseek-v4-flash-one-spark
+  model: DeepSeek-V4-Flash (0731)
+  params_b: 284
+  quant: EXL3 3.0 bpw (0xSero spark build)
+  backend: sparkinfer (vLLM 26.02 base)
+  status: measured
+  weights_gb: 107
+  recipe_url: https://github.com/MiaAI-Lab/DeepSeek-v4-Flash-One-DGX-Spark
+  config:
+    checkpoint: 0xSero/deepseek-v4-flash-0731-spark
+    runtime: sparkinfer / vLLM
+    quantization: EXL3 3.0 bpw, NVFP4 MLA KV (432B records)
+    architecture: MoE 284B total / 13B active, hybrid attention (DSA)
+    kv_cache_dtype: nvfp4_ds_mla
+    ctx: 256000
+    max_num_seqs: 4
+    speculative: DSpark K5 (K64 draft model)
+    note: "Mia's single-Spark recipe for the 0731 checkpoint; TP1, no second node. Bench overrides MAX_NUM_SEQS=1 -> 4 and MAX_MODEL_LEN 384000 -> 256000 (KV pool at 4 seqs is 7.25 GiB < 7.44 needed for 384k)."
+
+engine:
+  base_url: http://localhost:8889
+  model: deepseek-v4-flash-0731-spark
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4]
+  warmup_s: 30
+  measure_s: 120
+  request_timeout_s: 300

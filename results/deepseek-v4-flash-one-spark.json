@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "deepseek-v4-flash-one-spark-2026-09-07T08:10:39Z",
+    "timestamp": "2026-09-07T08:10:39Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b86c1f7",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4
+      ],
+      "warmup_s": 30,
+      "measure_s": 120,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "deepseek-v4-flash-one-spark",
+      "model": "DeepSeek-V4-Flash (0731)",
+      "params_b": 284,
+      "quant": "EXL3 3.0 bpw (0xSero spark build)",
+      "backend": "sparkinfer (vLLM 26.02 base)",
+      "status": "measured",
+      "weights_gb": 107,
+      "recipe_url": "https://github.com/MiaAI-Lab/DeepSeek-v4-Flash-One-DGX-Spark",
+      "config": {
+        "checkpoint": "0xSero/deepseek-v4-flash-0731-spark",
+        "runtime": "sparkinfer / vLLM",
+        "quantization": "EXL3 3.0 bpw, NVFP4 MLA KV (432B records)",
+        "architecture": "MoE 284B total / 13B active, hybrid attention (DSA)",
+        "kv_cache_dtype": "nvfp4_ds_mla",
+        "ctx": 256000,
+        "max_num_seqs": 4,
+        "speculative": "DSpark K5 (K64 draft model)",
+        "note": "Mia's single-Spark recipe for the 0731 checkpoint; TP1, no second node. Bench overrides MAX_NUM_SEQS=1 -> 4 and MAX_MODEL_LEN 384000 -> 256000 (KV pool at 4 seqs is 7.25 GiB < 7.44 needed for 384k)."
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 27.7,
+          "per_session_tok_s": 30.3,
+          "ttft_ms": {
+            "p50": 905,
+            "p95": 915,
+            "p99": 917
+          },
+          "itl_ms": {
+            "p50": 100.2,
+            "p95": 109.2,
+            "p99": 115.7
+          },
+          "samples": 13,
+          "gpu": {
+            "temperature_c": 76,
+            "power_draw_w": 52.25
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 42.7,
+          "per_session_tok_s": 22.7,
+          "ttft_ms": {
+            "p50": 1007,
+            "p95": 1053,
+            "p99": 1071
+          },
+          "itl_ms": {
+            "p50": 127.8,
+            "p95": 138.5,
+            "p99": 304.5
+          },
+          "samples": 20,
+          "gpu": {
+            "temperature_c": 78,
+            "power_draw_w": 52.84
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 61.9,
+          "per_session_tok_s": 16.4,
+          "ttft_ms": {
+            "p50": 1102,
+            "p95": 1228,
+            "p99": 1343
+          },
+          "itl_ms": {
+            "p50": 170.3,
+            "p95": 314.7,
+            "p99": 668.3
+          },
+          "samples": 29,
+          "gpu": {
+            "temperature_c": 79,
+            "power_draw_w": 53.38
+          }
+        }
+      ]
+    }
+  ]
+}

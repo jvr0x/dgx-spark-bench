@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "qwen3.8-flash-next-single-nothinking-2026-09-07T11:32:09Z",
+    "timestamp": "2026-09-07T11:32:09Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b86c1f7",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4
+      ],
+      "warmup_s": 30,
+      "measure_s": 120,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "qwen3.8-flash-next-single-nothinking",
+      "model": "Qwen3.8-Flash-Next",
+      "params_b": 125,
+      "quant": "NVFP4 (Mia-AiLab)",
+      "backend": "vLLM qwen38-flash-next image",
+      "status": "measured",
+      "weights_gb": 99,
+      "recipe_url": "https://github.com/MiaAI-Lab/Qwen3.8-Flash-Next-Single-DGX-Spark",
+      "config": {
+        "checkpoint": "Mia-AiLab/Qwen3.8-Flash-Next-NVFP4",
+        "runtime": "vLLM",
+        "quantization": "NVFP4, PLE table offloaded + memory-mapped (MADV_RANDOM)",
+        "architecture": "MoE 125B total / 6B active, hybrid GDN + QSA, vision-language",
+        "kv_cache_dtype": "fp8",
+        "ctx": 262144,
+        "max_num_seqs": 4,
+        "speculative": "MTP k=3",
+        "note": "Mia's single-Spark recipe; PLE n-gram table offloaded to host RAM, ~99 GB checkpoint."
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 32.0,
+          "per_session_tok_s": 35.1,
+          "ttft_ms": {
+            "p50": 637,
+            "p95": 818,
+            "p99": 1078
+          },
+          "itl_ms": {
+            "p50": 81.4,
+            "p95": 106.2,
+            "p99": 134.6
+          },
+          "samples": 15,
+          "gpu": {
+            "temperature_c": 70,
+            "power_draw_w": 34.88
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 49.1,
+          "per_session_tok_s": 26.7,
+          "ttft_ms": {
+            "p50": 776,
+            "p95": 868,
+            "p99": 1084
+          },
+          "itl_ms": {
+            "p50": 98.4,
+            "p95": 114.7,
+            "p99": 367.3
+          },
+          "samples": 23,
+          "gpu": {
+            "temperature_c": 72,
+            "power_draw_w": 36.99
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 68.3,
+          "per_session_tok_s": 18.8,
+          "ttft_ms": {
+            "p50": 879,
+            "p95": 1241,
+            "p99": 1272
+          },
+          "itl_ms": {
+            "p50": 130.7,
+            "p95": 166.5,
+            "p99": 474.5
+          },
+          "samples": 32,
+          "gpu": {
+            "temperature_c": 70,
+            "power_draw_w": 37.76
+          }
+        }
+      ]
+    }
+  ]
+}

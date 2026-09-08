@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "superqwen3.8-27b-ablit-nvfp4-bench-2026-08-26T12:31:18Z",
+    "timestamp": "2026-08-26T12:31:18Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b86c1f7",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "warmup_s": 30,
+      "measure_s": 180,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "superqwen3.8-27b-ablit-nvfp4-bench",
+      "model": "SuperQwen3.8-27B-abliterated",
+      "params_b": 27,
+      "quant": "NVFP4 W4A4 group-16 (ModelOpt)",
+      "backend": "vLLM (anemll dspark-vllm-gx10 0.1.1)",
+      "status": "measured",
+      "weights_gb": 19.2,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/superqwen3.8-27b-ablit-nvfp4",
+      "config": {
+        "checkpoint": "Jiunsong/SuperQwen3.8-27b-abliterated-NVFP4-DGX-Spark",
+        "runtime": "vLLM",
+        "quantization": "NVFP4 W4A4 group-16, vision tower + conv1d + MTP head + lm_head at BF16",
+        "architecture": "dense hybrid GDN VLM, 48 linear-attention + 16 full-attention layers",
+        "attention_backend": "TRITON_ATTN",
+        "kv_cache_dtype": "fp8",
+        "ctx": 32768,
+        "max_num_seqs": 64,
+        "cuda_graphs": false,
+        "speculative": "MTP qwen3_5_mtp, K=5, TRITON draft attention (in-checkpoint BF16 head)",
+        "caveat": "EAGER MODE. enforce_eager is left ON because cudagraph capture plus the multimodal encoder cache is an uncounted allocation that has hard-reset this box on an NVFP4 vision model. NOT graph-for-graph comparable with the SGLang qwen3.8-27b siblings, which capture decode graphs to bs=64.",
+        "note": "Abliterated fine-tune of the same Qwen3.8-27B base as the qwen3.8-27b-nvfp4-sglang-* series, but a different checkpoint, runtime and drafter \u2014 three variables at once, not a controlled A/B."
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 17.1,
+          "per_session_tok_s": 17.3,
+          "ttft_ms": {
+            "p50": 870,
+            "p95": 878,
+            "p99": 879
+          },
+          "itl_ms": {
+            "p50": 186.1,
+            "p95": 190.0,
+            "p99": 190.9
+          },
+          "samples": 12,
+          "gpu": {
+            "temperature_c": 68,
+            "power_draw_w": 35.39
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 34.1,
+          "per_session_tok_s": 18.0,
+          "ttft_ms": {
+            "p50": 1044,
+            "p95": 1058,
+            "p99": 1068
+          },
+          "itl_ms": {
+            "p50": 174.9,
+            "p95": 178.6,
+            "p99": 678.4
+          },
+          "samples": 24,
+          "gpu": {
+            "temperature_c": 69,
+            "power_draw_w": 36.07
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 58.3,
+          "per_session_tok_s": 15.5,
+          "ttft_ms": {
+            "p50": 1069,
+            "p95": 1861,
+            "p99": 1879
+          },
+          "itl_ms": {
+            "p50": 189.8,
+            "p95": 193.4,
+            "p99": 699.2
+          },
+          "samples": 41,
+          "gpu": {
+            "temperature_c": 71,
+            "power_draw_w": 36.75
+          }
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 86.8,
+          "per_session_tok_s": 11.8,
+          "ttft_ms": {
+            "p50": 1235,
+            "p95": 2141,
+            "p99": 2158
+          },
+          "itl_ms": {
+            "p50": 233.4,
+            "p95": 726.5,
+            "p99": 733.3
+          },
+          "samples": 61,
+          "gpu": {
+            "temperature_c": 74,
+            "power_draw_w": 38.15
+          }
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 138.0,
+          "per_session_tok_s": 9.3,
+          "ttft_ms": {
+            "p50": 1848,
+            "p95": 10135,
+            "p99": 10137
+          },
+          "itl_ms": {
+            "p50": 271.2,
+            "p95": 796.3,
+            "p99": 1107.5
+          },
+          "samples": 97,
+          "gpu": {
+            "temperature_c": 73,
+            "power_draw_w": 37.25
+          }
+        },
+        {
+          "concurrency": 32,
+          "agg_tok_s": 182.0,
+          "per_session_tok_s": 6.3,
+          "ttft_ms": {
+            "p50": 3418,
+            "p95": 17984,
+            "p99": 17987
+          },
+          "itl_ms": {
+            "p50": 386.9,
+            "p95": 1221.7,
+            "p99": 1669.2
+          },
+          "samples": 128,
+          "gpu": {
+            "temperature_c": 72,
+            "power_draw_w": 36.82
+          }
+        }
+      ]
+    }
+  ]
+}

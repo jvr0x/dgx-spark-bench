@@ -1,0 +1,129 @@
+# lmswitch BENCH PROFILE of deepseek-v4-flash-one-spark.
+# Port of https://github.com/MiaAI-Lab/DeepSeek-v4-Flash-One-DGX-Spark
+# (Mia's single-Spark TP=1 recipe, 0xSero EXL3 3.0bpw + sparkinfer + DSpark K5)
+# onto lmswitch's `vllm` runtime. Upstream serves via a generated compose.yml;
+# everything it does that lmswitch can express is here as recipe keys. Values
+# below are the BENCH profile (matches harness.yaml in this dir):
+# MAX_NUM_SEQS 1 -> 4 (concurrency sweep needs it), SERVING_PORT 8888 -> 8889.
+# Everything else as-served.
+#
+# Filename id = "deepseek-v4-flash-one-spark" (harness series id; the SERVED
+# model string the harness sends stays `deepseek-v4-flash-0731-spark` via
+# SERVED_MODEL_NAME below). Registered into lmswitch via symlink:
+#   ln -s "$PWD/deepseek-v4-flash-one-spark.yaml" ~/utils/lmswitch/ai-models/
+# then:
+#   lmswitch on deepseek-v4-flash-one-spark
+#
+# PREREQUISITES (weights are still downloading as of 2026-09-06):
+#   1. Finish the bootstrap (tmux `dspark-dl`): HF_CACHE=~/models/deepseek-v4-flash-0731-spark-hf
+#      ./download.sh — downloads ~107 GB AND coalesces TP4->TP1 into the
+#      checkout's ./data/tp1 (with --link-carried, ./data/tp1 symlinks back
+#      into the HF snapshot, so BOTH mounts below are load-bearing).
+#   2. Symlink the coalesced checkpoint at a stable path:
+#        ln -s ~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/data/tp1 \
+#              ~/models/deepseek-v4-flash-0731-spark-tp1
+#      (`model:` below must exist for lmswitch's pre-load RAM guard.)
+#   3. mkdir -p ~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/cache
+#      (compose creates it; plain `docker run` would make it root-owned.)
+#
+# UNVALIDATED: written 2026-09-06 from start.sh/compose inspection, never booted.
+# Validate with `lmswitch on deepseek-v4-flash-one-spark` once 1-3 are done.
+#
+# How this maps onto lmswitch's docker command: lmswitch appends
+# `<model_path> --served-model-name=... --port=... --max-model-len=... (plus
+# --max-num-seqs=32 hardcoded) ...` AFTER the entrypoint. This image's
+# entrypoint chain (`bash -lc "bash /patch-run-entrypoint.sh && exec
+# /opt/recipe/scripts/entrypoint.sh"`, then `exec /opt/vllm/serve-ds4-flash.sh`)
+# never forwards positional args, so those appended tokens are silently
+# dropped and the serve is driven ENTIRELY by the env: below. `port:`/`ctx:`
+# are therefore duplicated as PORT/MAX_MODEL_LEN env vars — that duplication
+# is load-bearing, not decorative.
+
+runtime: vllm
+model: "deepseek-v4-flash-0731-spark-tp1"   # symlink -> checkout ./data/tp1 (prereq 2)
+port: 8889
+# BENCH override: upstream default 384000 needs 7.44 GiB KV but the pool at
+# MAX_NUM_SEQS=4 is only 7.25 GiB (hybrid cache split shrinks it with seq
+# count) -> boot fails the "KV cache needed" check. 256000 needs ~5 GiB.
+# (Upstream anticipated exactly this: "keep MAX_MODEL_LEN lower when raising
+# max seqs".) Workload only needs ~1.3k tokens/seq.
+ctx: 256000                                 # mirrored as MAX_MODEL_LEN env (see header)
+display_name: "DeepSeek-V4-Flash 0731 EXL3 [BENCH single-Spark]"
+
+image: "ghcr.io/0xsero/deepseek-v4-flash-0731-spark-sparkinfer@sha256:2e077489a83a0360952828051fe7f7a32c1801e5ce8436d85f7267583d614ff4"
+
+# Compose entrypoint, verbatim (start.sh line ~452). Runs the xgrammar fix,
+# then the patched 256k recipe entrypoint (reads KV record layout from env).
+entrypoint:
+  - "/bin/bash"
+  - "-lc"
+  - "bash /patch-run-entrypoint.sh && exec /opt/recipe/scripts/entrypoint.sh"
+
+# TEMPORARY 2026-09-07: host holds ~113.1 GiB free (agent processes + page
+# cache), under the 114.39 needed for 0.94. 0.925 needs 112.56. KV pool
+# 7.25 -> ~7.1 GiB — still 70x the sweep's ~0.1 GiB need, so no speed effect
+# at N<=4; thinking-on/off comparability holds. REVERT to 0.94 on a clean box.
+gpu_memory_utilization: 0.925   # mirrored as env (see header); boot-safe max on this host
+max_num_seqs: 4                # BENCH knob (upstream default 1); KV pool shrinks with seq
+                               # count (hybrid split: ~337k total at 2 seqs), keep
+                               # MAX_MODEL_LEN down if a boot fails the KV check
+shm_size: 16g                  # compose shm_size
+ready_timeout: 1800            # cold 107 GiB load + TP1 verify; compose allows 20m health start
+
+env:
+  HF_TOKEN: ""
+  HF_HOME: "/hf-cache"
+  PORT: "8889"                                   # image reads $PORT, not lmswitch's --port flag
+  SERVED_MODEL_NAME: "deepseek-v4-flash-0731-spark"   # what the harness sends as `model`
+  MODEL_REPO: "0xSero/deepseek-v4-flash-0731-spark"
+  MODEL_REVISION: "22f28d32b9b29b4352eaa380ff8c2c170b2847ab"
+  MODEL_SOURCE_DIR: "/hf-cache/hub/models--0xSero--deepseek-v4-flash-0731-spark/snapshots/22f28d32b9b29b4352eaa380ff8c2c170b2847ab"
+  MAX_MODEL_LEN: "256000"                    # BENCH override, see ctx: above
+  MAX_NUM_SEQS: "4"                              # BENCH knob (see above)
+  MAX_NUM_BATCHED_TOKENS: "8224"                 # do NOT lower (sizes the MLA workspace)
+  VLLM_DSV4_PADDED_NVFP4: "0"                    # KV_RECORD=stock432: 432 B native NVFP4 records
+  KV_FP8_ROPE: "0"
+  MODE: "dspark"                                 # fixed K5 DSpark speculative draft
+  DSPARK_TOKENS: "5"
+  DSPARK_CAPACITY: "0"
+  DSPARK_DYNAMIC_DRAFT_DEPTH: "0"
+  DSPARK_DYNAMIC_DRAFT_DEPTH_WINDOW: "8"
+  DSPARK_DRAFT_EXPERTS: "64"
+  DSPARK_STRUCTURED_EXPERTS_PER_CATEGORY: "32"
+  VLLM_USE_B12X_WO_PROJECTION: "1"
+  GPU_MEMORY_UTILIZATION: "0.925"                # TEMPORARY, see gpu_memory_utilization above
+  VERIFY_MODEL_CHECKSUMS: "1"
+  MAX_CUDAGRAPH_CAPTURE_SIZE: "24"
+  CUDAGRAPH_CAPTURE_SIZES: "6,12,24"
+  VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: "0"  # reclaims ~0.6 GiB graph over-reservation
+  EXTRA_VLLM_ARGS: ""
+  DEFAULT_CHAT_TEMPLATE_KWARGS_THINKING: "true"
+  DEFAULT_CHAT_TEMPLATE_KWARGS_EFFORT: "max"
+  KV_OFFLOAD_GB: "0"
+  VLLM_USE_SIMPLE_KV_OFFLOAD: "0"
+
+extra_mounts:
+  # Coalesced TP1 + snapshot cache (BOTH load-bearing: tp1 links into the snapshot).
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/data:/models"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/cache:/cache"
+  - "~/models/deepseek-v4-flash-0731-spark-hf:/hf-cache"
+  # Image patches (compose volumes, verbatim; host paths made absolute).
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/entrypoint-toolfix.sh:/patch-run-entrypoint.sh:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/serve-ds4-flash.sh:/opt/vllm/serve-ds4-flash.sh:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/vllm/models/deepseek_v4/nvidia/dspark.py:/opt/vllm/vllm/models/deepseek_v4/nvidia/dspark.py:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/sparkinfer/moe/fused_moe/_impl.py:/opt/sparkinfer/sparkinfer/moe/fused_moe/_impl.py:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/sparkinfer/moe/_shared/kernels/tiny_decode.py:/opt/sparkinfer/sparkinfer/moe/_shared/kernels/tiny_decode.py:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/sparkinfer/attention/_shared/mla/prefill.py:/opt/sparkinfer/sparkinfer/attention/_shared/mla/prefill.py:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/sparkinfer/attention/_shared/mla/prefill_mg.py:/opt/sparkinfer/sparkinfer/attention/_shared/mla/prefill_mg.py:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/entrypoint-256k.sh:/opt/recipe/scripts/entrypoint.sh:ro"
+  - "~/dev/miaai-lab/DeepSeek-v4-Flash-One-DGX-Spark/image-patch/coalesce_rank_sliced_exl3.py:/opt/recipe/scripts/coalesce_rank_sliced_exl3.py:ro"
+
+# EXPECTED (upstream, same stack, MAX_NUM_SEQS=1): N=1 46.9 tok/s class,
+# DSpark accept ~0.65/0.44/0.31/0.17/0.07. The 1->4 bench override shrinks the
+# KV pool per seq; if a boot fails the "KV cache needed" check, drop
+# MAX_MODEL_LEN before touching anything else.
+#
+# NOT PORTED: compose restart:on-failure:1 (lmswitch manages lifecycle),
+# the ABLATE=1 overlay (opt-in ablation, off), LAN-share mode (REMOTE_HOST),
+# KV_OFFLOAD_GB>0 (incompatible with the image's expandable_segments
+# allocator), and the ablation selftest (manual `start.sh` path only).

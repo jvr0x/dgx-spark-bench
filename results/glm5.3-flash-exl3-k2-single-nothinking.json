@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "glm5.3-flash-exl3-k2-single-nothinking-2026-09-07T12:51:03Z",
+    "timestamp": "2026-09-07T12:51:03Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b86c1f7",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4
+      ],
+      "warmup_s": 30,
+      "measure_s": 120,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "glm5.3-flash-exl3-k2-single-nothinking",
+      "model": "GLM-5.3-Flash",
+      "params_b": 320,
+      "quant": "EXL3 K2 (2-bit routed experts, ~91 GiB pack)",
+      "backend": "vLLM + vllm-exl3 0.3.1 (Cruz prebuilt venv)",
+      "status": "measured",
+      "weights_gb": 91,
+      "recipe_url": "https://github.com/vcruz305/GLM-5.3-Flash-EXL3-K2-DGX-Spark-recipe",
+      "config": {
+        "checkpoint": "vcruz305/GLM-5.3-Flash-EXL3-K2",
+        "runtime": "vLLM (venv ~/venvs/glm53-exl3-local, nvcc + ninja on PATH)",
+        "quantization": "EXL3 K2 routed experts, BF16 attention/shared/dense",
+        "architecture": "MoE 320B total / 18B active, natively multimodal",
+        "kv_cache_dtype": "fp8",
+        "ctx": 65536,
+        "max_num_seqs": 1,
+        "speculative": "native MTP k=2 (in-checkpoint)",
+        "note": "Cruz's one-Spark EXL3-K2 recipe (vLLM, no container). Bench serve uses MAX_MODEL_LEN=65536/GPU_MEM_UTIL=0.91 (the measured 64k values); speed ranks quoted at 8k."
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 21.3,
+          "per_session_tok_s": 25.1,
+          "ttft_ms": {
+            "p50": 1499,
+            "p95": 1553,
+            "p99": 1554
+          },
+          "itl_ms": {
+            "p50": 112.1,
+            "p95": 114.8,
+            "p99": 137.3
+          },
+          "samples": 10,
+          "gpu": {
+            "temperature_c": 66,
+            "power_draw_w": 36.77
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 21.3,
+          "per_session_tok_s": 24.5,
+          "ttft_ms": {
+            "p50": 13317,
+            "p95": 14389,
+            "p99": 14582
+          },
+          "itl_ms": {
+            "p50": 112.1,
+            "p95": 114.7,
+            "p99": 140.8
+          },
+          "samples": 10,
+          "gpu": {
+            "temperature_c": 65,
+            "power_draw_w": 36.5
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 21.3,
+          "per_session_tok_s": 25.1,
+          "ttft_ms": {
+            "p50": 36743,
+            "p95": 38141,
+            "p99": 38179
+          },
+          "itl_ms": {
+            "p50": 112.6,
+            "p95": 123.3,
+            "p99": 141.1
+          },
+          "samples": 10,
+          "gpu": {
+            "temperature_c": 68,
+            "power_draw_w": 37.33
+          }
+        }
+      ]
+    }
+  ]
+}
