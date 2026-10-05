@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "kolibri-1-2026-10-05T16:45:18Z",
+    "timestamp": "2026-10-05T16:45:18Z",
+    "harness_version": "0.1.0",
+    "git_commit": "75d5139",
+    "hardware": {
+      "name": "DGX Spark",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 128,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 273,
+      "fp4_tops": 1000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4
+      ],
+      "warmup_s": 30,
+      "measure_s": 120,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "kolibri-1",
+      "model": "Kolibri-1",
+      "params_b": 78,
+      "quant": "FP8",
+      "backend": "vLLM",
+      "status": "measured",
+      "weights_gb": 78,
+      "recipe_url": "https://github.com/Aleph-Alpha/Kolibri-1",
+      "config": {
+        "checkpoint": "Aleph-Alpha/Kolibri-1",
+        "runtime": "vLLM",
+        "quantization": "FP8",
+        "ctx": 262144,
+        "max_num_seqs": 4,
+        "speculative": "NONE",
+        "note": "Kolibri-1 78B-A3.5B FP8, served at 10.100.224.1:8128"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 32.0,
+          "per_session_tok_s": 32.9,
+          "ttft_ms": {
+            "p50": 186,
+            "p95": 196,
+            "p99": 197
+          },
+          "itl_ms": {
+            "p50": 29.1,
+            "p95": 36.2,
+            "p99": 38.8
+          },
+          "samples": 15,
+          "gpu": {
+            "temperature_c": 62,
+            "power_draw_w": 35.66
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 59.7,
+          "per_session_tok_s": 32.2,
+          "ttft_ms": {
+            "p50": 226,
+            "p95": 252,
+            "p99": 254
+          },
+          "itl_ms": {
+            "p50": 29.9,
+            "p95": 37.9,
+            "p99": 39.4
+          },
+          "samples": 28,
+          "gpu": {
+            "temperature_c": 57,
+            "power_draw_w": 20.33
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 101.9,
+          "per_session_tok_s": 27.4,
+          "ttft_ms": {
+            "p50": 299,
+            "p95": 309,
+            "p99": 311
+          },
+          "itl_ms": {
+            "p50": 36.2,
+            "p95": 42.0,
+            "p99": 43.1
+          },
+          "samples": 48,
+          "gpu": {
+            "temperature_c": 69,
+            "power_draw_w": 38.76
+          }
+        }
+      ]
+    }
+  ]
+}

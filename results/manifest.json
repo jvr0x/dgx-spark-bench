@@ -42,6 +42,7 @@
     "deepseek-v4-flash-one-spark.json",
     "deepseek-v4-flash-one-spark-nothinking.json",
     "glm5.3-flash-exl3-k2-single.json",
-    "glm5.3-flash-exl3-k2-single-nothinking.json"
+    "glm5.3-flash-exl3-k2-single-nothinking.json",
+    "kolibri-1.json"
   ]
 }
