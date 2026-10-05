@@ -290,7 +290,7 @@ async def run_point(target: EngineTarget, workload: Workload, n: int, sweep: Swe
     point: dict[str, Any] = {
         "concurrency": n,
         "agg_tok_s": round(total_tokens / sweep.measure_s, 1),
-        "per_session_tok_s": round(statistics.mean(rates), 1) if rates else 0.0,
+        "per_session_tok_s": round(total_tokens / sweep.measure_s / n, 1) if n else 0.0,
         "ttft_ms": {"p50": round(percentile(ttfts, 50)), "p95": round(percentile(ttfts, 95)),
                     "p99": round(percentile(ttfts, 99))},
         "itl_ms": {"p50": round(percentile(all_itls, 50), 1), "p95": round(percentile(all_itls, 95), 1),

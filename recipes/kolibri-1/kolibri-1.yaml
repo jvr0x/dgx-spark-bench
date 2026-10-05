@@ -5,5 +5,5 @@ port: 8128
 ctx: 262144
 display_name: "Kolibri-1 78B-A3.5B FP8 [BENCH]"
 gpu_memory_utilization: 0.8
-max_num_seqs: 8
+max_num_seqs: 16
 speculative: NONE
