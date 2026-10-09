@@ -49,17 +49,21 @@
         "quantization": "compressed-tensors (nvfp4-pack-quantized)",
         "attention_backend": "flashinfer",
         "kv_cache_dtype": "fp8 (auto)",
-        "speculative": "DFlash, 6 tokens",
+        "speculative": "DFlash, K=7 (was 6)",
         "moe_backend": "flashinfer_cutlass (auto)",
         "reasoning_parser": "poolside_v1",
         "tool_call_parser": "poolside_v1",
-        "max_num_seqs": 4,
+        "max_num_seqs": 32,
         "max_model_len": 262144,
         "cuda_graphs": "true (enforce_eager false)",
         "trust_remote_code": true,
         "shm_size": "32g (ulimit_memlock, cap-add IPC_LOCK)",
         "gpu_memory_utilization": 0.85,
-        "note": "AEON image (ghcr.io/aeon-7/aeon-vllm-ultimate) has native Laguna+DFlash support but a real bug crashes the drafter's first forward pass (embed_normalizer AttributeError) in both eager and compiled mode -- switched to stock vllm-openai:v0.25.1 + --trust-remote-code + a flashinfer-bootstrap entrypoint, ported from github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which validated this exact combo. First real launch (2026-07-22) confirmed 33.05 GiB KV cache / 944,195 tokens / 3.60x concurrency @ 262144 ctx -- matches that repo's published numbers (32.44 GiB / 926,683 / 3.54x). TUNED: num_speculative_tokens dropped 15->6 after the initial 15-token run showed DFlash's per-position acceptance decaying to near-zero past position ~6 (drafting/verifying tokens that are almost never accepted is wasted compute). Rebenchmark at 6 beat the 15-token baseline at every single concurrency point and every metric -- agg tok/s 23.5/38.4/49.1/55.5/57.6 vs 23.5/34.1/46.9/53.3/53.3, per-session 27.3/19.9/16.7/15.6/15.7 vs 25.9/19.1/15.8/13.8/15.0, ttft_p95 lower at every point too, at N=1/2/3/4/6. Baseline series published separately for comparison (see laguna-s-2.1-nvfp4-nspec15).\n"
+        "kv_pin_gb": 12,
+        "prefix_caching": true,
+        "max_num_batched_tokens": 8192,
+        "vllm_use_deep_gemm": false,
+        "note": "AEON image (ghcr.io/aeon-7/aeon-vllm-ultimate) has native Laguna+DFlash support but a real bug crashes the drafter's first forward pass (embed_normalizer AttributeError) in both eager and compiled mode -- switched to stock vllm-openai:v0.25.1 + --trust-remote-code + a flashinfer-bootstrap entrypoint, ported from github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which validated this exact combo. First real launch (2026-07-22) confirmed 33.05 GiB KV cache / 944,195 tokens / 3.60x concurrency @ 262144 ctx -- matches that repo's published numbers (32.44 GiB / 926,683 / 3.54x). TUNED: num_speculative_tokens dropped 15->6 after initial run showed DFlash per-position acceptance decaying to near-zero past position ~6 (drafting tokens that are almost never accepted is wasted compute). Rebenchmark at 6 beat the 15-token baseline at every concurrency point and metric. 2026-07-23: 20-cell sweep (K∈{5,6,7,8,9} × seqs∈{4,8,16,32}) converged on K=7, seqs=32 as the optimum. K≥8 collapses hard (DFlash per-position acceptance ~0 past position 3). K6s16 was the short-bench leader (32 tok/s) but deflated to 21.5 on the full suite — short-bench mirage confirmed; rank on short benches, decide on full ones. Final config: K=7, seqs=32, fp8 KV, 12GiB KV pin, prefix caching on, max_num_batched_tokens=8192 (16384=0), VLLM_USE_DEEP_GEMM=off (inert on nvfp4 path). Benchmarks (K7/s32, fp8 KV, FLASHINFER, 12GiB KV pin, prefix caching on): c=1 overall median 23.4 tok/s, code 45.8, c=4 aggregate 61.7, TTFT ~330ms, prose floor ~18 tok/s (DFlash barely drafts free prose; speedup is code/structured-shaped, not universal). vs 2-Spark lanes (same night, same micro-suite): MiniMax-M3 (2× Spark) and Laguna (1×) tied 15/16 on held-out intel suite, Laguna answering ~2× faster wall-clock; DSV4-Flash trailed 12/16 but owns 1M-context crown. Per Spark: Laguna is the efficiency story — pair-class results from half the silicon. Cold long-context (no cache tricks): 100K prompt = 45.6s TTFT then ~19 tok/s; 209K works (KV at 60% of pool), 133s TTFT. Retrieval verified at both depths. Prefill cost at depth is the real price of long context on one box. Verdict: Laguna earned a permanent lane. Agent/coding brain hangs with 2-box setups — snappy TTFT, strong tool-calling, 45+ tok/s on code-shaped work. Caveats: free prose ~18 tok/s, cold long-context costs real prefill time, cold starts ~10 min. Route to what it's good at: agents, tools, code, private single-box work. Not replacing pairs; earning its own job.\n"
       },
       "points": [
         {

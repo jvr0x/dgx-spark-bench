@@ -1,25 +1,34 @@
-# lmswitch recipe for poolside/Laguna-S-2.1-NVFP4 on 1x DGX Spark.
-# 117.6B total / 8.5B activated MoE (256 experts + 1 shared), mixed
-# sliding-window (36/48 layers) + global attention, NVFP4 weights (~71G) +
-# DFlash draft model (~2G) for speculative decoding.
-#
-# HISTORY (2026-07-21/22): first tried the AEON image
-# (ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1), which ships a
-# native `laguna.py`/`laguna_dflash.py` — but that build's DFlash
-# integration is genuinely broken for Laguna: `AttributeError:
-# 'DFlashLagunaModel' object has no attribute 'embed_normalizer'` in
-# vllm/model_executor/models/qwen3_dflash.py::embed_input_ids, crashing on
-# the draft model's first forward pass in BOTH eager and compiled mode. Not
-# fixable via yaml. See [[poolside-laguna-s21-lmswitch]].
-#
-# Switched to the stock image + bootstrap-script approach from
-# github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which has real
-# validated numbers for this exact model+draft combo on a GB10 Spark
-# (32.44 GiB KV cache, 926,683 tokens @ 0.85 util). That repo's start.sh
-# uses --trust-remote-code (stock vllm-openai lacks native Laguna support,
-# so it falls back to the checkpoint's own modeling_laguna.py) plus a tiny
-# bootstrap entrypoint that pip-installs flashinfer-python before `vllm
-# serve` (the stock image doesn't ship FlashInfer's NVFP4 kernels).
+|# lmswitch recipe for poolside/Laguna-S-2.1-NVFP4 on 1x DGX Spark.
+|# 117.6B total / 8.5B activated MoE (256 experts + 1 shared), mixed
+|# sliding-window (36/48 layers) + global attention, NVFP4 weights (~71G) +
+|# DFlash draft model (~2G) for speculative decoding.
+|#
+|# HISTORY (2026-07-21/22): first tried the AEON image
+|# (ghcr.io/aeon-7/aeon-vllm-ultimate:2026-07-16-v0.25.1), which ships a
+|# native `laguna.py`/`laguna_dflash.py` — but that build's DFlash
+|# integration is genuinely broken for Laguna: `AttributeError:
+|# 'DFlashLagunaModel' object has no attribute 'embed_normalizer'` in
+|# vllm/model_executor/models/qwen3_dflash.py::embed_input_ids, crashing on
+|# the draft model's first forward pass in BOTH eager and compiled mode. Not
+|# fixable via yaml. See [[poolside-laguna-s21-lmswitch]].
+|#
+|# Switched to the stock image + bootstrap-script approach from
+|# github.com/MiaAI-Lab/Laguna-S-2.1-DGX-Spark-RTX-6000-PRO, which has real
+|# validated numbers for this exact model+draft combo on a GB10 Spark
+|# (32.44 GiB KV cache, 926,683 tokens @ 0.85 util). That repo's start.sh
+|# uses --trust-remote-code (stock vllm-openai lacks native Laguna support,
+|# so it falls back to the checkpoint's own modeling_laguna.py) plus a tiny
+|# bootstrap entrypoint that pip-installs flashinfer-python before `vllm
+|# serve` (the stock image doesn't ship FlashInfer's NVFP4 kernels).
+|#
+|# 2026-07-23: 20-cell sweep converged on K=7, seqs=32 as the optimum.
+|# K≥8 collapses (per-position DFlash acceptance ~0 past position 3).
+|# Short-bench mirage: K6s16 (32 tok/s quick-bench) deflated to 21.5 on
+|# full suite — rank on short, decide on full. Final config: fp8 KV,
+|# 12GiB KV pin, prefix caching on, max_num_batched_tokens=8192 (16384=0),
+|# VLLM_USE_DEEP_GEMM=off (inert on nvfp4 path).
+|# Benchmarks: c=1 median 23.4 tok/s, code 45.8, c=4 agg 61.7, TTFT ~330ms,
+|# prose floor ~18 tok/s (DFlash drafts code/structured, not free prose).
 runtime: vllm
 model: "poolside/Laguna-S-2.1-NVFP4"
 port: 8131
@@ -49,7 +58,9 @@ env:
 gpu_memory_utilization: 0.85
 # MiaAI-Lab's validated value (they call it "a safe starting point for
 # single-user use"; poolside's own card serves at 32 -- untried here yet).
-max_num_seqs: 4
+# 2026-07-23: 20-cell sweep (K∈{5,6,7,8,9} × seqs∈{4,8,16,32}) converged
+# on K=7, seqs=32 as optimum. K≥8 collapses (DFlash acceptance ~0 past pos 3).
+max_num_seqs: 32
 tool_call_parser: "poolside_v1"
 reasoning_parser: "poolside_v1"
 enforce_eager: false
@@ -68,29 +79,49 @@ extra_mounts:
 
 extra_args:
   - "--speculative-config"
-  - '{"model":"/home/jvr0x/models/poolside/Laguna-S-2.1-DFlash-NVFP4","num_speculative_tokens":6,"method":"dflash"}'
+  - '{"model":"/home/jvr0x/models/poolside/Laguna-S-2.1-DFlash-NVFP4","num_speculative_tokens":7,"method":"dflash"}'
   - "--override-generation-config"
   - '{"temperature":0.7,"top_p":0.95}'
   # Do NOT add min_p to overrides: vLLM rejects min_p + logit_bias under
   # speculative decoding (returns 400 on every sampled request).
   # Do NOT add --linear-backend flashinfer_b12x on 0.25.1: broken + slower.
 
-# TUNING (2026-07-22): num_speculative_tokens dropped 15 -> 6. The dual
-# recipe's spec-decoding metrics (before it was abandoned, see
-# [[poolside-laguna-s21-lmswitch]]) showed per-position DFlash acceptance
-# decaying fast -- ~68%, 37%, 22%, 15%, 7%, 5.6%, 3.7%... near 0% by
-# position 8-14 -- matching poolside's own "~2.9-3.1 tokens/step" figure.
-# Drafting+verifying 15 tokens/step when only ~3 are typically accepted is
-# mostly wasted compute; 6 keeps positions with non-trivial acceptance
-# (~68% down to ~5.6%) while dropping the near-zero tail. Also resolves the
-# recipe's old "max_num_scheduled_tokens is set to 1992 ... suboptimal
-# performance ... decrease num_speculative_tokens" warning. CONFIRMED: full
-# rebenchmark at 6 beat the 15-token baseline at every single N and every
-# single metric (agg tok/s, per-session tok/s, AND ttft_p95) --
-# agg 23.5/38.4/49.1/55.5/57.6 vs baseline 23.5/34.1/46.9/53.3/53.3, per
-# 27.3/19.9/16.7/15.6/15.7 vs baseline 25.9/19.1/15.8/13.8/15.0, at
-# N=1/2/3/4/6. Aggregate throughput also no longer flatlines exactly at the
-# max_num_seqs=4 ceiling (kept climbing a bit to N=6). Baseline published
-# as its own comparison series: recipes/laguna-s-2.1-nvfp4-nspec15/,
-# results/laguna-s-2.1-nvfp4-nspec15.json. Current run at
-# .../results/laguna-s-2.1-nvfp4.json.
+# TUNING (2026-07-23): 20-cell sweep (K∈{5,6,7,8,9} × seqs∈{4,8,16,32})
+# converged on K=7, seqs=32 as the optimum. K≥8 collapses hard — DFlash
+# per-position acceptance drops to ~0 past position 3, so deeper drafts
+# burn compute for nothing. K=7 peaked at every seqs level tested.
+#
+# K6s16 was the short-bench leader (32 tok/s) but deflated to 21.5 on the
+# full suite — one lucky tool-category window. If you're picking flags off
+# a 2-minute bench, you're probably picking noise. Rank on short benches,
+# decide on full ones.
+#
+# Final config: K=7, seqs=32, fp8 KV, FLASHINFER, 12GiB KV pin, prefix
+# caching on, max_num_batched_tokens=8192 (16384=0), VLLM_USE_DEEP_GEMM=off
+# (inert on nvfp4-pack-quantized path).
+#
+# Benchmarks (K7/s32, fp8 KV, FLASHINFER, 12GiB KV pin, prefix caching on):
+#   c=1 overall median: 23.4 tok/s · code median: 45.8
+#   c=4 aggregate: 61.7 tok/s
+#   TTFT ~330ms short prompts
+#   Prose floor: ~18 tok/s (DFlash barely drafts free prose; speedup is
+#     code/structured-shaped, not universal)
+#
+# vs 2-Spark lanes (same night, same micro-suite):
+#   MiniMax-M3 (2× Spark) and Laguna (1×) tied 15/16 on held-out intel suite,
+#     Laguna answering ~2× faster wall-clock
+#   DSV4-Flash trailed 12/16 but owns the 1M-context crown
+#   Per Spark: Laguna is the efficiency story — pair-class results from half
+#     the silicon
+#
+# Cold long-context (no cache tricks):
+#   100K prompt = 45.6s TTFT then ~19 tok/s
+#   209K works (KV at 60% of pool), 133s TTFT
+#   Retrieval verified at both depths
+#   Prefill cost at depth is the real price of long context on one box
+#
+# Verdict: Laguna earned a permanent lane. Agent/coding brain hangs with
+# 2-box setups — snappy TTFT, strong tool-calling, 45+ tok/s on code-shaped
+# work. Caveats: free prose ~18 tok/s, cold long-context costs real prefill
+# time, cold starts ~10 min. Route to what it's good at: agents, tools,
+# code, private single-box work. Not replacing pairs; earning its own job.

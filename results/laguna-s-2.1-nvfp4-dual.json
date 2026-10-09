@@ -1,0 +1,216 @@
+{
+  "schema_version": "1.0",
+  "run": {
+    "id": "laguna-s-2.1-nvfp4-dual-2026-07-22T10:51:13Z",
+    "timestamp": "2026-07-22T10:51:13Z",
+    "harness_version": "0.1.0",
+    "git_commit": "b706c14",
+    "hardware": {
+      "name": "DGX Spark x2 (TP=2)",
+      "soc": "GB10 Grace Blackwell",
+      "mem_gb": 256,
+      "mem_type": "LPDDR5x",
+      "bw_gbs": 546,
+      "fp4_tops": 2000
+    },
+    "workload": {
+      "name": "chat",
+      "prompt_tokens": 1024,
+      "output_tokens": 256,
+      "mode": "closed_loop"
+    },
+    "sweep": {
+      "concurrencies": [
+        1,
+        2,
+        4,
+        8,
+        12,
+        16,
+        20
+      ],
+      "warmup_s": 20,
+      "measure_s": 120,
+      "request_timeout_s": 300
+    }
+  },
+  "series": [
+    {
+      "id": "laguna-s-2.1-nvfp4-dual",
+      "model": "Laguna-S-2.1 [DUAL 2x SPARK]",
+      "params_b": 117.6,
+      "quant": "NVFP4 + DFlash",
+      "backend": "vLLM (TP=2, native --nnodes 2)",
+      "status": "measured",
+      "weights_gb": 71.9,
+      "recipe_url": "https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/laguna-s-2.1-nvfp4-dual",
+      "config": {
+        "checkpoint": "poolside/Laguna-S-2.1-NVFP4",
+        "draft_checkpoint": "poolside/Laguna-S-2.1-DFlash-NVFP4",
+        "image": "vllm/vllm-openai:v0.25.1",
+        "topology": "TP=2, head=spark + worker=Gigabyte over CX7 (NCCL IB)",
+        "quantization": "compressed-tensors (nvfp4-pack-quantized)",
+        "attention_backend": "flashinfer",
+        "speculative": "none (DFlash dropped for dual -- see note)",
+        "reasoning_parser": "poolside_v1",
+        "tool_call_parser": "poolside_v1",
+        "max_num_seqs": 16,
+        "max_model_len": 262144,
+        "cuda_graphs": "true (enforce_eager false)",
+        "trust_remote_code": true,
+        "shm_size": "64g",
+        "gpu_memory_utilization": 0.85,
+        "note": "Same image-switch history as the solo recipe (laguna-s-2.1-nvfp4): AEON image's DFlash integration is broken for Laguna, ported the MiaAI-Lab stock-image + bootstrap-entrypoint approach instead. First TP=2+DFlash launch (2026-07-22) booted fine (65.44 GiB KV / 3,738,604 tokens / 14.26x concurrency) and served a few requests correctly, but hung and died a few minutes into the benchmark sweep -- one TP rank blocked on a slow first-time JIT compile for a DFlash kernel shape past the other rank's NCCL/shared-memory wait timeout; the head exited but the worker on gigabyte was orphaned (broken-pipe TCPStore loop) until manually killed. DFlash dropped for dual entirely as a result -- solo keeps it since it's proven stable there. Without DFlash's speculative-token overhead, KV cache is even bigger: 65.51 GiB / 5,513,261 tokens / 21.03x concurrency @ 262144 ctx.\n"
+      },
+      "points": [
+        {
+          "concurrency": 1,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 1,
+          "gpu": {
+            "temperature_c": 52,
+            "power_draw_w": 15.27
+          }
+        },
+        {
+          "concurrency": 2,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 440805,
+          "gpu": {
+            "temperature_c": 53,
+            "power_draw_w": 15.47
+          }
+        },
+        {
+          "concurrency": 4,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 455418,
+          "gpu": {
+            "temperature_c": 54,
+            "power_draw_w": 15.52
+          }
+        },
+        {
+          "concurrency": 8,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 457201,
+          "gpu": {
+            "temperature_c": 49,
+            "power_draw_w": 4.76
+          }
+        },
+        {
+          "concurrency": 12,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 444465,
+          "gpu": {
+            "temperature_c": 53,
+            "power_draw_w": 13.77
+          }
+        },
+        {
+          "concurrency": 16,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 435751,
+          "gpu": {
+            "temperature_c": 57,
+            "power_draw_w": 20.99
+          }
+        },
+        {
+          "concurrency": 20,
+          "agg_tok_s": 0.0,
+          "per_session_tok_s": 0.0,
+          "ttft_ms": {
+            "p50": 0,
+            "p95": 0,
+            "p99": 0
+          },
+          "itl_ms": {
+            "p50": 0.0,
+            "p95": 0.0,
+            "p99": 0.0
+          },
+          "samples": 0,
+          "_failures": 413981,
+          "gpu": {
+            "temperature_c": 59,
+            "power_draw_w": 14.13
+          }
+        }
+      ]
+    }
+  ]
+}
