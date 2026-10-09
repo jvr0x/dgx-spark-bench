@@ -7,32 +7,45 @@
 #     -o ../results/deepseek-v4-flash-dspark-dual.json
 #   lmswitch off deepseek-v4-flash-dspark-dual
 #
-# As-served (not a raised bench-profile): max_num_seqs=12 is the recipe's
-# validated ceiling on this pair at ctx=1048576, so the sweep is capped there.
+# 2026-07-31: engine retargeted at the r0b0tlab v0.26 SM121 image (vLLM
+# 0.26.0+dspark.sm121.2, K=6), keeping 1M ctx and the memory package validated
+# on this pair (util 0.85, no KV pin, 8192 batched). The numbers currently in
+# results/deepseek-v4-flash-dspark-dual.json were measured on the OLD profile
+# (Anemll vLLM 0.25, K=3) and do NOT describe this config —
+# re-run the sweep before trusting them together.
+#
+# As-served (not a raised bench-profile): max_num_seqs=12 is this pair's
+# validated ceiling at 1M ctx, so the sweep is capped there.
 
 series:
   id: deepseek-v4-flash-dspark-dual
   model: DeepSeek-V4-Flash DSpark 1M [DUAL 2xSpark]
-  quant: NVFP4-DS-MLA KV + b12x MoE + DSpark spec-decode
-  backend: vLLM 0.25 (Anemll dspark-vllm-gx10, TP=2)
+  quant: NVFP4-DS-MLA KV + b12x MoE + DSpark spec-decode (K=6)
+  backend: vLLM 0.26.0+dspark.sm121.2 (r0b0tlab knownfix SM121, TP=2)
+  # Applies to the run this config will produce. No v0.26 sweep has been run yet;
+  # the numbers currently in results/ are the old 1M / vLLM-0.25 profile's.
   status: measured
   weights_gb: 155.4
   recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/deepseek-v4-flash-dspark-dual
   config:
     checkpoint: deepseek-ai/DeepSeek-V4-Flash-DSpark
     topology: TP=2 across spark (master) + gigabyte (worker) over CX7 RoCE
-    image: ghcr.io/anemll/dspark-vllm-gx10:0.1.1
+    image: ghcr.io/r0b0tlab/deepseek-v4-flash-dspark-v026-sm121:v0.26.0-sm121-optimized
     moe_backend: flashinfer_b12x
     kv_cache_dtype: nvfp4_ds_mla
-    speculative: dspark, 3 tokens (probabilistic draft sampling)
+    speculative: dspark, 6 tokens (engine-default draft sampling)
     gpu_memory_utilization: 0.85
+    kv_cache_memory_bytes: "unpinned (profiler-sized; r0b0tlab's 15998753178 is 327K-sized)"
     max_num_seqs: 12
     max_model_len: 1048576
     block_size: 256
     max_num_batched_tokens: 8192
+    optimization_level: 2
+    performance_mode: balanced
+    flashinfer_autotune: true
+    cudagraphs: "on (breakable-cudagraph knownfix path; enforce_eager off)"
+    max_cudagraph_capture_size: "engine default = min(max_num_seqs*2, 512) = 24"
     prefix_caching: "on (defeated by unique prompts)"
-    chunked_prefill: true
-    async_scheduling: true
     enable_thinking: false
     note: "1M-ctx checkpoint; workload run at 1024/256 tokens (short-context roofline, not a long-context test)"
 
@@ -50,7 +63,7 @@ workload:
   output_tokens: 256
 
 sweep:
-  # max_num_seqs is 12 on this pair; sweep stops at that ceiling.
+  # max_num_seqs is 12 on this pair at 1M ctx; sweep stops at that ceiling.
   concurrencies: [1, 2, 4, 8, 12]
   warmup_s: 30
   measure_s: 180

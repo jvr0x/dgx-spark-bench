@@ -1,20 +1,37 @@
 # DeepSeek V4 Flash DSpark — TP=2 across spark + gigabyte over CX7 (1M ctx).
-# Translated from MiaAI-Lab/DeepSeek-v4-Flash-DSpark-2x-DGX-Spark. 2026-07-16:
-# switched to Anemll's prebuilt vLLM 0.25 image (ghcr.io/anemll/dspark-vllm-gx10)
-# — DSpark/NVFP4-DS-MLA/b12x-MoE now ship IN the image, replacing the local
-# Stage-C build + Keys proposer bind-mount. Validated upstream at 66.6 tok/s
-# single-stream, 153.7 tok/s aggregate @ 6 concurrent (at their util=0.85).
-# 2026-07-20: was pinned to util=0.75, which crashed AFTER weight load during
-# KV-cache allocation at the full 1M ctx (needed 7.54 GiB, had 7.31 GiB —
-# ~3% short; ValueError from vllm/v1/core/kv_cache_utils.py). Both nodes sit
-# idle at ~117G available with nothing else competing, so there was no real
-# headroom reason for 0.75 — reverted to the upstream-validated 0.85. Weights
-# live ONCE in
-# ~/models/deepseek-ai/DeepSeek-V4-Flash-DSpark on gigabyte; spark reads them
-# over the NFS mount at the same path. Image must be `docker pull`ed on BOTH
-# nodes (no local build needed).
+# 2026-07-31: engine switched from the Anemll vLLM-0.25 image to the r0b0tlab
+# v0.26 SM121 known-fix package, taking its runtime values:
+# https://github.com/r0b0tlab/DeepSeek-V4-Flash-DSpark-v026-SM121
+# (profiles/dspark-r0b0tlab-production.env + scripts/run-dspark-dual-gb10.sh).
+# Their dual-GB10 numbers on the 327,680-ctx shape: 80.58 tok/s single-stream
+# decode, 402.0 tok/s aggregate @ c16, ~300K request qualified, GSM8K 50/50.
+#
+# NOT taken from them: the memory shape. Their profile is built around
+# --kv-cache-memory-bytes=15998753178 (~14.9 GiB) paired with
+# gpu_memory_utilization=0.835 and max_num_seqs/batched-tokens 16/16384 — that
+# byte pin is sized for 327,680 tokens, and this pair only ever found ~7.3 GiB
+# free for KV at 1M ctx (see the 2026-07-20 crash note below). 1M therefore
+# keeps the memory package validated on this hardware: util 0.85, no explicit
+# KV pin (the profiler sizes the pool), 8192 batched tokens, max_num_seqs 12.
+# 8192 is also what r0b0tlab admit on their own long-context lane — their
+# c1-300k-knownfix profile caps batched tokens at 8192 because portable SM121
+# sparse prefill cannot finish a 16K-token first step inside the 300s
+# sample_tokens RPC budget (Class A hang).
+#
+# 2026-07-20 (still load-bearing): util was pinned to 0.75, which crashed AFTER
+# weight load during KV-cache allocation at the full 1M ctx (needed 7.54 GiB,
+# had 7.31 GiB — ~3% short; ValueError from vllm/v1/core/kv_cache_utils.py).
+# Both nodes sit idle at ~117G available, so there was no headroom reason for
+# 0.75 — 0.85 is the upstream-validated value and stays.
+#
+# Weights live ONCE in ~/models/deepseek-ai/DeepSeek-V4-Flash-DSpark on
+# gigabyte; spark reads them over the NFS mount at the same path. The image
+# must be `docker pull`ed on BOTH nodes.
 runtime: vllm-dual
-image: "ghcr.io/anemll/dspark-vllm-gx10:0.1.1"
+# Registry digest sha256:269a1c6ac581f4fb2fe13110d2468159c3ca65c07ffb09b4080549673f625841
+# (image id sha256:f904b9445aa407420b26f70ee5c2075c7d04ef0fdd38a728b20985ee331303a6).
+# vLLM 0.26.0+dspark.sm121.2 + known-fix overlay + pinned NCCL 2.30.4.
+image: "ghcr.io/r0b0tlab/deepseek-v4-flash-dspark-v026-sm121:v0.26.0-sm121-optimized"
 model: "deepseek-ai/DeepSeek-V4-Flash-DSpark"
 # Weights live once, on gigabyte, per the ~/models/<hf-user>/<model>
 # convention; spark reads the same directory over the NFS mount.
@@ -23,53 +40,65 @@ worker_model_path: "~/models/deepseek-ai/DeepSeek-V4-Flash-DSpark"
 port: 8888
 display_name: "DeepSeek-V4-Flash DSpark 1M [DUAL 2x SPARK]"
 
+# This image's ENTRYPOINT is /usr/local/bin/dspark-entrypoint.sh, a fail-closed
+# gate: it rejects anything that is not an explicit `vllm serve ...`, requires
+# KV_CACHE_DTYPE=nvfp4_ds_mla in the env (the image sets it) plus exactly one
+# --kv-cache-dtype nvfp4_ds_mla argument, then runs /usr/local/bin/audit_runtime.py
+# before exec'ing the server. lmswitch appends its args as CMD, so without this
+# key $1 would be /model and the gate would exit 64. Keeping the script as the
+# entrypoint (rather than overriding to plain `vllm serve`) preserves the audit.
+entrypoint: "/usr/local/bin/dspark-entrypoint.sh vllm serve"
+
 worker_host: Gigabyte
 master_addr: 10.100.224.2
 worker_ip: 10.100.224.1
 master_port: 25000
+# Symmetric on this pair — r0b0tlab's script uses a head/worker-asymmetric NIC
+# pair (enp1s0f0np0/rocep1s0f0 vs f1np1/rocep1s0f1); that is their cabling, not
+# ours. Ours is validated as-is and stays.
 nccl:
   ifname: enp1s0f1np1
   hca: rocep1s0f1
   gid_index: 3
 
 ctx: 1048576
+# 12 is this pair's validated concurrency ceiling at 1M ctx, not a throttle.
+# (r0b0tlab run 16, but at 327,680 with an explicit KV pin.)
 max_num_seqs: 12
 gpu_memory_utilization: 0.85
-# The recipe profile relies on cudagraph capture (--max-cudagraph-capture-size
-# below); lmswitch's single-node default of --enforce-eager must stay off.
+# The v0.26 profile serves with cudagraphs on (ENFORCE_EAGER=0) via the
+# known-fix breakable-cudagraph path; lmswitch's single-node default of
+# --enforce-eager must stay off.
 enforce_eager: false
 shm_size: 64g
-ready_timeout: 2400
+# v0.26 O2 runs FlashInfer autotuning on a cold cache at startup, on top of the
+# TP=2 weight load — first start after a cache wipe is slow.
+ready_timeout: 3600
 
 extra_mounts:
   # Node-local vLLM compile cache — must NOT live in the shared NFS cache or
-  # the two nodes trample each other's torch.compile artifacts.
-  - "~/.cache/vllm-dspark:/root/.cache/vllm"
-
-# No entrypoint override: the Anemll image's native ENTRYPOINT is already
-# ["vllm", "serve"] (confirmed via docker inspect) — unlike the old Stage-C
-# image (ENTRYPOINT /bin/bash), so lmswitch's plain arg-appending CMD works
-# as-is. Also drop the old /opt/env PATH/CUDA_HOME/LD_LIBRARY_PATH overrides
-# below: those existed only to fix the Stage-C image's nonstandard layout;
-# this image sets a correct standard env (python3 + vllm under /usr/local,
-# CUDA under /usr/local/cuda) itself, so overriding it risks clobbering it.
+  # the two nodes trample each other's torch.compile artifacts. Separate dir
+  # from the 0.25 one so the two engines never read each other's artifacts.
+  - "~/.cache/vllm-dspark-v026:/root/.cache/vllm"
+  # FlashInfer autotune workspace, per r0b0tlab's FLASHINFER_CACHE — node-local
+  # for the same reason.
+  - "~/.cache/dspark-v026-flashinfer-topk256:/cache/flashinfer-workspace"
 
 env:
   HF_HUB_OFFLINE: 1
+  TRANSFORMERS_OFFLINE: 1
   HF_HUB_DISABLE_XET: 1
   VLLM_ALLOW_LONG_MAX_MODEL_LEN: 1
   VLLM_TRITON_MLA_SPARSE: 1
+  # 0.26 defaults this to 512; r0b0tlab's launcher pins 256, so we do too.
   VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: 256
-  VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: 0
-  VLLM_SKIP_INIT_MEMORY_CHECK: 1
   VLLM_USE_FLASHINFER_SAMPLER: 1
-  VLLM_USE_B12X_MOE: 1
-  VLLM_USE_B12X_WO_PROJECTION: 1
-  DSPARK_SLOT_CLAMP: 1
-  VLLM_DSPARK_LOCAL_ARGMAX: 1
-  VLLM_DSPARK_REPLICATE_MARKOV_W1: 1
-  VLLM_DSPARK_GPU_REJECTED_CONTEXT_MASK: 1
-  VLLM_DSPARK_HARDWARE_SCHEDULER_EARLY_STOP: 1
+  # Load-bearing for the v0.26 profile: cudagraphs stay on and are broken at
+  # the sparse-MLA boundaries by the known-fix overlay. The image sets this in
+  # its own ENV (alongside GLM52_DRAFTER_GATE=enforce and
+  # GLM52_FINGERPRINT_MODE=off); pinned here so the recipe is self-describing.
+  VLLM_USE_BREAKABLE_CUDAGRAPH: 1
+  FLASHINFER_WORKSPACE_BASE: /cache/flashinfer-workspace
   TORCH_CUDA_ARCH_LIST: 12.1a
   FLASHINFER_CUDA_ARCH_LIST: 12.1a
   FLASHINFER_DISABLE_VERSION_CHECK: 1
@@ -81,28 +110,65 @@ env:
   NCCL_IGNORE_CPU_AFFINITY: 1
   NCCL_DEBUG: WARN
   NCCL_NVLS_ENABLE: 0
-  # New in the Anemll/vLLM-0.25 compose; not auto-injected by lmswitch's
-  # vllm-dual runtime (which only pins NCCL_SOCKET_IFNAME/HCA/GID_INDEX).
+  # Reliability/Availability/Serviceability daemon — on in the r0b0tlab profile.
+  NCCL_RAS_ENABLE: 1
   NCCL_IB_ADDR_FAMILY: AF_INET
   NCCL_IB_ROCE_VERSION_NUM: 2
+  # Dropped with the image switch: the DSPARK_*/VLLM_USE_B12X_* overrides
+  # (SLOT_CLAMP, LOCAL_ARGMAX, REPLICATE_MARKOV_W1, GPU_REJECTED_CONTEXT_MASK,
+  # HARDWARE_SCHEDULER_EARLY_STOP, WO_PROJECTION). r0b0tlab sets those only on
+  # their legacy Stage-C lane, and none of them exist in this image's envs.py —
+  # the native-v026 lane selects the MoE path with --moe-backend instead.
+  # Also dropped: VLLM_SKIP_INIT_MEMORY_CHECK — gone from 0.26's envs.py.
+  # Kept from the validated 1M memory package (r0b0tlab leave it at the default
+  # 1, but they also pin the KV pool): with no pin, the profiler's cudagraph
+  # estimate comes straight out of the KV budget, which at 1M had ~3% of slack.
+  # Safe only because capture stays at the engine default — see the dropped
+  # --max-cudagraph-capture-size note below.
+  VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: 0
 
 extra_args:
   - "--trust-remote-code"
   - "--kv-cache-dtype=nvfp4_ds_mla"
   - "--block-size=256"
+  # 8192, not r0b0tlab's 16384: their own long-context lane caps it here
+  # (16K-token first step overruns the 300s sparse-prefill RPC budget).
   - "--max-num-batched-tokens=8192"
-  - "--max-cudagraph-capture-size=24"   # max_num_seqs * (MTP + 1) = 6 * 4
+  # No --kv-cache-memory-bytes: their 15998753178 (~14.9 GiB) is sized for
+  # 327,680 tokens and exceeds what this pair has free at 1M ctx. The memory
+  # profiler sizes the pool instead, as on the validated 1M profile.
+  # Reason: on the 0.25 engine a full 1M sequence needed 7.54 GiB of DS-MLA
+  # NVFP4 KV against 7.31 GiB free, so the headroom here is ~7.5 GiB, not the
+  # ~14.9 GiB their pin asks for. (Measured on the previous engine — the 0.26
+  # figure is unknown, but the pin overshoots by ~2x, not by a few percent.)
   - "--enable-prefix-caching"
-  - "--async-scheduling"
-  - "--enable-chunked-prefill"
   - "--moe-backend=flashinfer_b12x"
-  - "--speculative-config={\"method\":\"dspark\",\"num_speculative_tokens\":3,\"draft_sample_method\":\"probabilistic\"}"
+  # K=6 (was 3). draft_sample_method is left at the engine default: r0b0tlab's
+  # launcher passes only method+num_speculative_tokens, and their acceptance
+  # numbers were measured that way.
+  - "--speculative-config={\"method\":\"dspark\",\"num_speculative_tokens\":6}"
+  # v0.26 scheduling/JIT profile: O2 + balanced + autotune, JIT regressions
+  # fail loudly instead of silently falling back.
+  - "--optimization-level=2"
+  - "--performance-mode=balanced"
+  - "--enable-flashinfer-autotune"
+  - "--jit-monitor-mode=error"
   - "--tokenizer-mode=deepseek_v4"
   - "--distributed-executor-backend=mp"
   - "--tool-call-parser=deepseek_v4"
   - "--enable-auto-tool-choice"
   - "--reasoning-parser=deepseek_v4"
   - "--reasoning-config={\"reasoning_parser\":\"deepseek_v4\",\"reasoning_start_str\":\"<think>\",\"reasoning_end_str\":\"</think>\"}"
+  # Local serving preference, deliberately NOT r0b0tlab's (they serve
+  # thinking:true) — daily-driver default stays non-thinking.
   - "--default-chat-template-kwargs={\"thinking\":false}"
   - "--generation-config=vllm"
-  - "--enable-flashinfer-autotune"
+  # Dropped to match the measured r0b0tlab profile: --async-scheduling (they do
+  # not run it) and --enable-chunked-prefill (SchedulerConfig defaults it to
+  # True in this image; only encoder-decoder models turn it off).
+  # --max-cudagraph-capture-size is also dropped, and that changes nothing: it
+  # bounds the captured *batch size* and defaults to min(max_num_seqs * 2, 512)
+  # = 24 at seqs=12, which is exactly what the old explicit 24 was (its
+  # "max_num_seqs * (MTP + 1) = 6 * 4" comment was wrong — the recipe ran 12
+  # seqs). Leaving it to the engine keeps the validated capture footprint and
+  # tracks max_num_seqs automatically.

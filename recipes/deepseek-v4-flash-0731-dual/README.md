@@ -5,6 +5,15 @@ across **two DGX Sparks (GB10)**: tensor-parallel TP=2 over CX7 RoCE, NVFP4-DS-M
 b12x MoE backend, DSpark speculative decoding (K=5), 1M context. As-served config, values taken
 verbatim from the live lmswitch recipe — not a raised bench profile.
 
+> **Frozen at the benchmarked config (2026-08-01).** The live lmswitch recipe moved on
+> 2026-08-20: it now mounts MiaAI-Lab's runtime hotfix suite (upstream `main` @ `21da90f`)
+> and adds `--long-prefill-token-threshold=1024`, `--enable-prompt-tokens-details`,
+> `VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=1800`, `VLLM_PREFIX_CACHE_RETENTION_INTERVAL=4096`
+> and `DSPARK_MAX_INFLIGHT_PREFILLS=2`. The yaml here is deliberately *not* updated — it
+> is what produced the numbers below. Re-copy it from `~/utils/lmswitch/ai-models/` and
+> re-run the sweep before comparing against the current lane; upstream's own A/B puts
+> 32K x c4 per-stream decode at 8.2 -> 24.6 tok/s from the #27 change alone.
+
 Distinct from [`deepseek-v4-flash-dspark-dual`](../deepseek-v4-flash-dspark-dual): different
 checkpoint (0731 vs the DSpark preview), different memory shape (util 0.80 / `max_num_seqs` 6 vs
 0.85 / 12), different spec-decode depth (K=5 vs K=3 on the profile that produced that lane's
