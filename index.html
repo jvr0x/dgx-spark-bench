@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* ground — jvr0x.github.io matrix-terminal tokens */
+    /* ground — jvr0x.com matrix-terminal tokens */
     --bg:#0a0e14; --panel:#0f1419; --panel-2:#141a22; --line:#1e2a36; --line-2:#2b3a4a;
     --ink:#c5cdd8; --ink-dim:#5a6a7a; --ink-faint:#46545f;
     --green:#00ff41; --green-dim:#00cc33; --cyan:#00d4ff; --white:#e8edf3;
@@ -177,12 +177,12 @@
 <div class="app">
   <div class="topbar">
     <span class="logo">jvr0x<span class="blink">_</span></span>
-    <a class="back" href="https://jvr0x.github.io/">&larr; jvr0x.github.io</a>
+    <a class="back" href="https://jvr0x.com/">&larr; jvr0x.com</a>
   </div>
   <header>
     <div class="eyebrow">$ ./spark-bench --sweep --all-recipes</div>
     <h1>How many <span class="accent">tokens/sec</span> can one or two DGX Sparks serve under parallel load?</h1>
-    <p class="sub">Aggregate decode throughput, per-session speed and tail latency as concurrent sessions scale — every number a real measured run. Toggle configs, set a latency budget, read the ceiling. <a class="accent" href="https://jvr0x.github.io/tok-sim/" target="_blank" rel="noopener">See what these speeds actually look like &rarr;</a></p>
+    <p class="sub">Aggregate decode throughput, per-session speed and tail latency as concurrent sessions scale — every number a real measured run. Toggle configs, set a latency budget, read the ceiling. <a class="accent" href="https://jvr0x.com/tok-sim/" target="_blank" rel="noopener">See what these speeds actually look like &rarr;</a></p>
     <div class="specs" id="specs"></div>
   </header>
 
@@ -250,7 +250,7 @@
     </div>
     <div>Hardware: NVIDIA DGX Spark · GB10 Grace Blackwell · 128 GB LPDDR5x unified @ 273 GB/s · 1 PFLOP FP4. Decode is memory-bandwidth bound; concurrency is KV-cache–capacity bound. Workload: 1024-token prompt / 256-token output, closed-loop.</div>
     <div>Every series is a real run of the open <a href="https://github.com/jvr0x/dgx-spark-bench" target="_blank" rel="noopener">dgx-spark-bench</a> harness on this hardware — reproducible from the recipe linked in each config card.</div>
-    <div>Related: <a href="https://jvr0x.github.io/tok-sim" target="_blank" rel="noopener">tok-sim</a> — visual tokens/sec simulator to compare what different generation speeds look like.</div>
+    <div>Related: <a href="https://jvr0x.com/tok-sim" target="_blank" rel="noopener">tok-sim</a> — visual tokens/sec simulator to compare what different generation speeds look like.</div>
   </footer>
 </div>
 <div id="tip"></div>
