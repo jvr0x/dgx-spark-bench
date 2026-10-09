@@ -1,0 +1,63 @@
+# Harness run config for the GLM-5.3-Flash one-Spark recipe (Cruz's, DFlash2).
+# Runs ON the Spark, against the llama.cpp server on :8891.
+#
+#   cd ~/dev/community-recipes/GLM-5.3-Flash-DFlash2-DGX-Spark-recipe
+#   LLAMA_CPP=$HOME/dev/community-recipes/llama.cpp-glm5next PORT=8891 \
+#     TARGET_GGUF=$HOME/models/GLM-5.3-Flash-GGUF/GLM-5.3-Flash-Q2_K.gguf \
+#     DRAFT_GGUF=$HOME/models/GLM-5.3-Flash-DFlash2-GGUF/GLM-5.3-Flash-DFlash2-BF16.gguf \
+#     ./scripts/serve_one_spark.sh
+#   cd ~/dev/dgx-spark-bench/harness
+#   taskset -c 0,1 .venv/bin/python bench.py \
+#     ../recipes/glm-5.3-flash-dflash2-single/harness.yaml \
+#     -o ../results/glm-5.3-flash-dflash2-single.json
+#
+# Recipe: https://github.com/vcruz305/GLM-5.3-Flash-DFlash2-DGX-Spark-recipe
+# NOTE: llama.cpp accepts min_tokens (maps to min_new_tokens) but not
+# ignore_eos. Prompt is unique per request; server stops at EOS or 256 tokens.
+# Sweep capped at 4: single-slot server (-np 1) and 96k ctx, ~40 t/s baseline.
+
+series:
+  id: glm-5.3-flash-dflash2-single
+  model: GLM-5.3-Flash
+  params_b: 320
+  quant: Q2_K GGUF (2.91 bpw) + DFlash2 BF16 draft
+  backend: llama.cpp (Cruz fork, DFlash2)
+  status: measured
+  weights_gb: 117
+  recipe_url: https://github.com/vcruz305/GLM-5.3-Flash-DFlash2-DGX-Spark-recipe
+  config:
+    checkpoint: vcruz305/GLM-5.3-Flash-GGUF (Q2_K)
+    runtime: llama.cpp llama-server (Cruz fork 4a06ec6)
+    quantization: Q2_K target (2.91 bpw) + DFlash2 BF16 draft
+    architecture: MoE 320B total / 18B active, natively multimodal
+    kv_cache_dtype: q8_0
+    ctx: 98304
+    max_num_seqs: 1
+    speculative: DFlash2 draft, n_max=7, p_min=0.30
+    note: "Cruz's one-Spark recipe (llama.cpp + DFlash2). Q2_K is a quality vs fit trade-off on 128 GiB; ~40 t/s structured in his measurements."
+
+engine:
+  base_url: http://localhost:8891
+  model: GLM-5.3-Flash-Q2_K
+  api_key: dummy
+  extra_body:
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4]
+  warmup_s: 30
+  measure_s: 120
+  request_timeout_s: 300

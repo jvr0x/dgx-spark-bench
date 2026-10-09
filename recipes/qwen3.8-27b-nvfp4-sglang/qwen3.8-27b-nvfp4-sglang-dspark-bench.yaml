@@ -1,0 +1,88 @@
+# lmswitch BENCH PROFILE of qwen3.8-27b-nvfp4-sglang-dspark (SGLang + the
+# DSpark block drafter). A/B sibling of qwen3.8-27b-nvfp4-sglang-mtp-bench:
+# same target weights, same image, same sweep, same three-knob deltas — only
+# the speculative decoder changes. See the MTP profile's header for the full
+# rationale on each bench knob.
+#
+# Bench deltas vs the daily driver (ai-models/qwen3.8-27b-nvfp4-sglang-dspark.yaml):
+#   max_running_requests        16   -> 64
+#   --cuda-graph-max-bs-decode  4    -> 64
+#   --torch-compile-max-bs      4    -> 64    (must track the decode graph bound
+#                                              or compiled decode stops covering
+#                                              the batch sizes we sweep)
+#   --max-mamba-cache-size      64   -> 256
+#   mem_fraction_static         0.90 -> 0.80  (lower than the MTP sibling's 0.85
+#                                              by the same 0.05 the daily pair
+#                                              differs by: the ~2.6 GB bf16 draft
+#                                              and its own decode graphs live
+#                                              outside the static pool, and both
+#                                              grow with bs=64.)
+#   ctx                         262144 -> 32768
+#
+# ctx is LOWERED here, so the daily driver's YaRN warning (about RAISING ctx)
+# does not apply.
+runtime: sglang
+model: "RadixArk/Qwen3.8-27B-NVFP4"
+port: 8241
+ctx: 32768
+display_name: "Qwen3.8-27B NVFP4 SGLang +DSpark [BENCH]"
+image: "lmsysorg/sglang:qwen38-27b"
+
+mem_fraction_static: 0.80
+attention_backend: "flashinfer"
+chunked_prefill_size: 8192
+disable_prefill_cuda_graph: true
+kv_cache_dtype: "fp8_e4m3"
+max_running_requests: 64
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+sampling_defaults: "model"
+trust_remote_code: true
+shm_size: "32g"
+# MEASURED on the first boot (2026-08-26): target-verify CUDA graph capture alone
+# took 1015s because --torch-compile-max-bs 64 builds a graph per bs bucket for
+# both target and draft. 2400s left almost no margin; 4800s is ~2x the observed
+# cold boot. Warm boots are far shorter thanks to the compile cache mounted below.
+ready_timeout: 4800
+
+extra_mounts:
+  - "~/models/RadixArk/Qwen3.8-27B-DSpark:/home/jvr0x/models/RadixArk/Qwen3.8-27B-DSpark:ro"
+  # Persist the inductor/triton compile cache across container recreates. Without
+  # this, every boot re-pays the ~17min bs=64 compile. Bench-private dir: the
+  # daily driver compiles a different bs set (max 4) and must not share a cache.
+  - "~/.cache/qwen38-dspark-bench-inductor:/root/.cache"
+
+env:
+  SGLANG_OPT_MAMBA_SKIP_DECODE_LOCK: 0
+
+extra_args:
+  - "--mamba-ssm-dtype"
+  - "bfloat16"
+  - "--mamba-full-memory-ratio"
+  - "4.21"
+  - "--mamba-radix-cache-strategy"
+  - "extra_buffer_lazy"
+  - "--max-mamba-cache-size"
+  - "256"
+  # DSpark block drafting, unchanged from the daily driver: block 7 is upstream's
+  # measured code peak, num-draft-tokens = gamma+1 = 8. This is the measured
+  # variable.
+  - "--speculative-algorithm"
+  - "DSPARK"
+  - "--speculative-draft-model-path"
+  - "/home/jvr0x/models/RadixArk/Qwen3.8-27B-DSpark"
+  - "--speculative-dspark-block-size"
+  - "7"
+  - "--speculative-draft-model-quantization"
+  - "unquant"
+  - "--speculative-num-draft-tokens"
+  - "8"
+  - "--enable-torch-compile"
+  - "--torch-compile-max-bs"
+  - "64"
+  - "--cuda-graph-max-bs-decode"
+  - "64"
+  - "--num-continuous-decode-steps"
+  - "2"
+  - "--enable-metrics"
+  - "--enable-cache-report"

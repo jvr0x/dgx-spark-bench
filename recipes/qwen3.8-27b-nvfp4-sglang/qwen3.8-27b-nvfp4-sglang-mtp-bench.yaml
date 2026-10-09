@@ -1,0 +1,79 @@
+# lmswitch BENCH PROFILE of qwen3.8-27b-nvfp4-sglang (SGLang + the checkpoint's
+# own MTP/EAGLE head). First SGLang recipe in this suite — the three-knob rule
+# from recipes/README.md is written against vLLM, so the sglang analogues are
+# spelled out below.
+#
+# Bench deltas vs the daily driver (ai-models/qwen3.8-27b-nvfp4-sglang.yaml):
+#   max_running_requests   16     -> 64      (== vLLM max_num_seqs; below the
+#                                             sweep ceiling everything queues
+#                                             and the knee is a config artifact)
+#   --cuda-graph-max-bs-decode  4 -> 64      (no vLLM analogue in the template.
+#                                             At N=8+ decode would fall off the
+#                                             graph path and we would measure
+#                                             the eager fallback, not GB10.)
+#   --max-mamba-cache-size 64    -> 256      (GDN state pool is concurrency x 4
+#                                             slots; 64 was sized for 16 running
+#                                             requests. 48 of 64 layers are
+#                                             linear-attention, so this pool is
+#                                             a real second KV.)
+#   mem_fraction_static    0.95  -> 0.85     (NOT a copy of vLLM's util 0.5 -
+#                                             opposite semantics. In sglang this
+#                                             fraction IS the weights+KV pool;
+#                                             it drops only to make room for the
+#                                             much larger decode CUDA graphs and
+#                                             the 20 GB mamba pool, which live
+#                                             outside it.)
+#   ctx                    262144 -> 32768   (the 1024/256 workload needs ~1.3K;
+#                                             256K pre-reserves KV and throttles
+#                                             batching)
+#
+# ctx is LOWERED here, so the daily driver's YaRN warning (which is about
+# RAISING ctx past native 262K) does not apply.
+runtime: sglang
+model: "RadixArk/Qwen3.8-27B-NVFP4"
+port: 8240
+ctx: 32768
+display_name: "Qwen3.8-27B NVFP4 SGLang +MTP [BENCH]"
+image: "lmsysorg/sglang:qwen38-27b"
+
+mem_fraction_static: 0.85
+attention_backend: "flashinfer"
+chunked_prefill_size: 8192
+disable_prefill_cuda_graph: true
+kv_cache_dtype: "fp8_e4m3"
+max_running_requests: 64
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+sampling_defaults: "model"
+trust_remote_code: true
+shm_size: "32g"
+# Longer than the daily driver's 900s: capturing decode graphs up to bs=64
+# instead of bs=4 dominates first boot.
+ready_timeout: 1800
+
+env:
+  SGLANG_OPT_MAMBA_SKIP_DECODE_LOCK: 0
+
+extra_args:
+  - "--mamba-ssm-dtype"
+  - "bfloat16"
+  - "--mamba-full-memory-ratio"
+  - "4.21"
+  - "--mamba-radix-cache-strategy"
+  - "extra_buffer_lazy"
+  - "--max-mamba-cache-size"
+  - "256"
+  # MTP chain drafting, unchanged from the daily driver: topk=1 requires
+  # num-draft-tokens = num-steps + 1. This is the measured variable.
+  - "--speculative-algorithm"
+  - "EAGLE"
+  - "--speculative-num-steps"
+  - "3"
+  - "--speculative-eagle-topk"
+  - "1"
+  - "--speculative-num-draft-tokens"
+  - "4"
+  - "--cuda-graph-max-bs-decode"
+  - "64"
+  - "--enable-metrics"
+  - "--enable-cache-report"

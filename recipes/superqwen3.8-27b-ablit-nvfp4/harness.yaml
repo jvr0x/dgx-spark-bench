@@ -1,0 +1,59 @@
+# Harness run config for the superqwen3.8-27b-ablit-nvfp4-bench recipe.
+# Runs ON the Spark, against the bench profile served by lmswitch on :8242.
+#
+#   lmswitch on superqwen3.8-27b-ablit-nvfp4-bench    # wait for "Ready on port 8242"
+#   cd ~/dev/dgx-spark-bench/harness
+#   taskset -c 0,1 .venv/bin/python bench.py \
+#     ../recipes/superqwen3.8-27b-ablit-nvfp4/harness.yaml \
+#     -o ../results/superqwen3.8-27b-ablit-nvfp4-bench.json
+#   lmswitch off superqwen3.8-27b-ablit-nvfp4-bench
+
+series:
+  id: superqwen3.8-27b-ablit-nvfp4-bench
+  model: SuperQwen3.8-27B-abliterated
+  params_b: 27
+  quant: NVFP4 W4A4 group-16 (ModelOpt)
+  backend: vLLM (anemll dspark-vllm-gx10 0.1.1)
+  status: measured
+  weights_gb: 19.2
+  recipe_url: https://github.com/jvr0x/dgx-spark-bench/tree/main/recipes/superqwen3.8-27b-ablit-nvfp4
+  config:
+    checkpoint: Jiunsong/SuperQwen3.8-27b-abliterated-NVFP4-DGX-Spark
+    runtime: vLLM
+    quantization: NVFP4 W4A4 group-16, vision tower + conv1d + MTP head + lm_head at BF16
+    architecture: dense hybrid GDN VLM, 48 linear-attention + 16 full-attention layers
+    attention_backend: TRITON_ATTN
+    kv_cache_dtype: fp8
+    ctx: 32768
+    max_num_seqs: 64
+    cuda_graphs: false
+    speculative: MTP qwen3_5_mtp, K=5, TRITON draft attention (in-checkpoint BF16 head)
+    caveat: "EAGER MODE. enforce_eager is left ON because cudagraph capture plus the multimodal encoder cache is an uncounted allocation that has hard-reset this box on an NVFP4 vision model. NOT graph-for-graph comparable with the SGLang qwen3.8-27b siblings, which capture decode graphs to bs=64."
+    note: "Abliterated fine-tune of the same Qwen3.8-27B base as the qwen3.8-27b-nvfp4-sglang-* series, but a different checkpoint, runtime and drafter — three variables at once, not a controlled A/B."
+
+engine:
+  base_url: http://localhost:8242
+  model: superqwen3.8-27b-ablit-nvfp4-bench
+  api_key: dummy
+  extra_body:
+    ignore_eos: true
+    min_tokens: 256
+
+hardware:
+  name: DGX Spark
+  soc: GB10 Grace Blackwell
+  mem_gb: 128
+  mem_type: LPDDR5x
+  bw_gbs: 273
+  fp4_tops: 1000
+
+workload:
+  name: chat
+  prompt_tokens: 1024
+  output_tokens: 256
+
+sweep:
+  concurrencies: [1, 2, 4, 8, 16, 32]
+  warmup_s: 30
+  measure_s: 180
+  request_timeout_s: 300

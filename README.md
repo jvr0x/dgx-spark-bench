@@ -19,7 +19,7 @@ lmswitch on <recipe>  ──►  harness/bench.py  ──►  results/<run>.json
 ```
 
 Models are served with [**lmswitch**](https://github.com/jvr0x/lmswitch) — a small tool that
-launches local LLMs (vLLM via Docker, GGUF via llama.cpp) from per-model YAML configs and
+launches local LLMs (vLLM and SGLang via Docker, GGUF via llama.cpp) from per-model YAML configs and
 handles readiness polling. A **recipe** = one lmswitch bench-profile yaml + one harness config,
 so anyone with a Spark can reproduce a published series with two clones and three commands.
 
@@ -67,7 +67,9 @@ index.html   the dashboard (vanilla HTML/CSS/JS, no build step; GitHub Pages ser
 
 1. Copy an existing dir under `recipes/`, point it at your model, and tune the bench knobs
    (`max_num_seqs` ≥ your sweep ceiling; on Spark, pin KV size explicitly — see the comments
-   in the flagship recipe for the hard-won details).
+   in the flagship recipe for the hard-won details). Serving with **SGLang** instead of vLLM?
+   Read "SGLang: what the three knobs translate to" in [recipes/README.md](recipes/README.md)
+   first — two of its required knobs have no vLLM analogue and fail silently.
 2. Fill in `series:` metadata in `harness.yaml`, including `config:` (the load-bearing engine
    flags) and `recipe_url`.
 3. Run the sweep, drop the json into `results/`, add it to `results/manifest.json`.

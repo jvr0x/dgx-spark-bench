@@ -1,0 +1,91 @@
+# lmswitch BENCH PROFILE of superqwen3.8-27b-ablit-nvfp4 (vLLM + the
+# checkpoint's own qwen3_5_mtp head, K=5).
+#
+# Bench deltas vs the daily driver (ai-models/superqwen3.8-27b-ablit-nvfp4.yaml),
+# the standard three knobs from recipes/README.md:
+#   max_num_seqs             6      -> 64      (below the sweep ceiling every
+#                                               request past N=6 just queues and
+#                                               the knee is a config artifact)
+#   gpu_memory_utilization   0.82   -> 0.5     (+ explicit --kv-cache-memory-bytes
+#                                               so KV is a stated constant, not a
+#                                               leftover of the profiler)
+#   ctx                      262144 -> 32768   (the 1024/256 workload needs ~1.3K)
+#
+# ===================== READ BEFORE CHANGING ANYTHING =====================
+# enforce_eager stays ON (lmswitch's default, left unset exactly as in the daily
+# driver). The daily recipe records that cudagraph capture plus the multimodal
+# encoder cache is an uncounted allocation that has HARD-RESET this box on an
+# NVFP4 vision model. A benchmark is not worth a box reset, so this lane is
+# measured in eager mode and labelled as such.
+#
+# CONSEQUENCE, and it is not small: this series is NOT graph-for-graph
+# comparable with the SGLang qwen3.8-27b siblings, which capture decode graphs
+# up to bs=64. Read this series as "vLLM eager + MTP K=5 on the abliterated
+# checkpoint", not as a clean runtime A/B. harness.yaml states the same caveat
+# in series.config so it travels with the published number.
+# =========================================================================
+runtime: vllm
+model: "Jiunsong/SuperQwen3.8-27b-abliterated-NVFP4-DGX-Spark"
+port: 8242
+ctx: 32768
+display_name: "SuperQwen3.8-27B Abliterated NVFP4 +MTP [BENCH]"
+image: "ghcr.io/anemll/dspark-vllm-gx10:0.1.1"
+entrypoint: "vllm serve"
+
+gpu_memory_utilization: 0.5
+max_num_seqs: 64
+attention_backend: "TRITON_ATTN"
+tool_call_parser: "qwen3_coder"
+reasoning_parser: "qwen3"
+trust_remote_code: true
+limit_mm_per_prompt: '{"image":1,"video":0}'
+shm_size: "32g"
+ready_timeout: 1800
+
+# Deliberately the SAME cache dirs as the daily driver, not bench-private ones:
+# identical image and identical engine, so the bench lane reuses the daily
+# lane's FlashInfer/CuTeDSL JIT artifacts instead of paying a cold compile. The
+# daily recipe's "recipe-private" rule is about not sharing across DIFFERENT
+# engines; these two never run at the same time (each wants the whole box).
+extra_mounts:
+  - "~/.cache/superqwen38-ablit-root:/root/.cache"
+  - "~/.cache/superqwen38-ablit-flashinfer:/cache/flashinfer"
+  - "~/.cache/superqwen38-ablit-tmp:/tmp"
+
+env:
+  HF_HUB_OFFLINE: 1
+  TRANSFORMERS_OFFLINE: 1
+  VLLM_ALLOW_LONG_MAX_MODEL_LEN: 1
+  VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: 0
+  VLLM_USE_BREAKABLE_CUDAGRAPH: 0
+  VLLM_USE_FLASHINFER_SAMPLER: 1
+  VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS: 1800
+  TORCH_CUDA_ARCH_LIST: "12.1a"
+  FLASHINFER_CUDA_ARCH_LIST: "12.1a"
+  CUTE_DSL_ARCH: sm_121a
+  FLASHINFER_DISABLE_VERSION_CHECK: 1
+  FLASHINFER_WORKSPACE_BASE: /cache/flashinfer
+  PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+
+extra_args:
+  - "--pipeline-parallel-size=1"
+  - "--distributed-executor-backend=mp"
+  # 32 GiB KV pin: at ~33 KB/token FP8 that is ~1M tokens, and the sweep needs
+  # 64 x 1280 = ~82K. Sized so KV is never the binding constraint at N=32.
+  - "--kv-cache-memory-bytes"
+  - "34359738368"
+  - "--max-num-batched-tokens=16384"
+  - "--kv-cache-dtype=fp8"
+  - "--mamba-cache-dtype=bfloat16"
+  - "--mamba-ssm-cache-dtype=float32"
+  - "--mamba-cache-mode=align"
+  - "--mamba-block-size=128"
+  - "--enable-prefix-caching"
+  - "--enable-chunked-prefill"
+  - "--enable-prompt-tokens-details"
+  - "--async-scheduling"
+  - "--mm-processor-cache-gb=0"
+  - "--max-cudagraph-capture-size=32"
+  - "--performance-mode=interactivity"
+  - '--compilation-config={"backend":"eager"}'
+  - '--speculative-config={"method":"qwen3_5_mtp","num_speculative_tokens":5,"attention_backend":"TRITON_ATTN"}'
