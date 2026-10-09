@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DGX Spark · LLM Throughput Bench</title>
+<link rel="canonical" href="https://jvr0x.com/dgx-spark-bench/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="jvr0x">
+<meta property="og:title" content="DGX Spark · LLM Throughput Bench">
+<meta property="og:description" content="How many tokens/sec can one or two NVIDIA DGX Sparks serve under parallel load? Aggregate throughput, per-session speed and tail latency as concurrency scales, from real measured runs, each reproducible from its recipe.">
+<meta property="og:url" content="https://jvr0x.com/dgx-spark-bench/">
+<meta property="og:image" content="https://jvr0x.com/assets/og-default.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@jvr0x">
+<meta name="twitter:creator" content="@jvr0x">
+<meta name="twitter:title" content="DGX Spark · LLM Throughput Bench">
+<meta name="twitter:description" content="How many tokens/sec can one or two NVIDIA DGX Sparks serve under parallel load? Aggregate throughput, per-session speed and tail latency as concurrency scales, from real measured runs, each reproducible from its recipe.">
+<meta name="twitter:image" content="https://jvr0x.com/assets/og-default.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,19 +39,13 @@
   *{box-sizing:border-box}
   html,body{margin:0}
   body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:14px;line-height:1.6;
-    -webkit-font-smoothing:antialiased;padding:28px clamp(16px,4vw,48px) 64px}
+    -webkit-font-smoothing:antialiased}
   .scanline{position:fixed;inset:0;pointer-events:none;z-index:999;
     background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px)}
   a{color:var(--green);text-decoration:none;transition:color .2s}
   a:hover{color:var(--cyan)}
   ::selection{background:#00802080;color:var(--white)}
-  .app{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
-  .topbar{display:flex;justify-content:space-between;align-items:baseline;font-size:.85rem}
-  .topbar .logo{color:var(--green);font-weight:700;font-size:1.1rem}
-  .blink{animation:blink 1s step-end infinite}
-  @keyframes blink{50%{opacity:0}}
-  .topbar .back{color:var(--ink-dim);border-bottom:1px dashed var(--line);padding-bottom:2px}
-  .topbar .back:hover{color:var(--green);border-color:var(--green)}
+  .app{max-width:1320px;margin:0 auto;box-sizing:content-box;padding:28px clamp(16px,4vw,48px) 64px;display:flex;flex-direction:column;gap:24px}
   .eyebrow{font-family:var(--mono);font-size:.85rem;color:var(--green);opacity:.8;margin-bottom:.6rem}
   h1{font-size:clamp(20px,3vw,28px);line-height:1.25;margin:6px 0 0;font-weight:700;text-wrap:balance;color:var(--white)}
   h1 .accent{color:var(--green)}
@@ -155,10 +164,10 @@
   .badge.m{background:rgba(0,204,51,.12);color:var(--good)} .badge.p{background:rgba(196,134,31,.14);color:var(--warn)}
   .hidden{display:none}
 
-  footer{color:var(--ink-faint);font-size:12px;border-top:1px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:6px}
-  footer a{color:var(--ink-dim)}
-  footer .legend{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px}
-  footer .legend span{display:flex;align-items:center;gap:7px}
+  .app > footer{color:var(--ink-faint);font-size:12px;border-top:1px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:6px}
+  .app > footer a{color:var(--ink-dim)}
+  .app > footer .legend{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px}
+  .app > footer .legend span{display:flex;align-items:center;gap:7px}
   .lg-solid,.lg-dash{width:22px;height:0;border-top:2px solid var(--ink-dim)}
   .lg-dash{border-top-style:dashed}
 
@@ -171,14 +180,25 @@
   #tip .r b{color:var(--ink);font-weight:600}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<link rel="stylesheet" href="/assets/chrome.css">
 </head>
 <body>
+<!-- jx:header -->
+<header class="jx-header">
+  <a class="jx-logo" href="/">jvr0x<span class="jx-blink">_</span></a>
+  <nav class="jx-nav" aria-label="Site">
+    <a href="/about/">about</a>
+    <a href="/newsletter/">newsletter</a>
+    <a href="/models/">models</a>
+    <a href="/recipes/">recipes</a>
+    <a href="/lab/">lab</a>
+    <a href="/tools/">tools</a>
+    <a href="/bots/">bots</a>
+  </nav>
+</header>
+<!-- /jx:header -->
 <div class="scanline"></div>
 <div class="app">
-  <div class="topbar">
-    <span class="logo">jvr0x<span class="blink">_</span></span>
-    <a class="back" href="https://jvr0x.com/">&larr; jvr0x.com</a>
-  </div>
   <header>
     <div class="eyebrow">$ ./spark-bench --sweep --all-recipes</div>
     <h1>How many <span class="accent">tokens/sec</span> can one or two DGX Sparks serve under parallel load?</h1>
@@ -254,6 +274,24 @@
   </footer>
 </div>
 <div id="tip"></div>
+
+<!-- jx:footer -->
+<footer class="jx-footer">
+  <div class="jx-signup">
+    <p class="jx-prompt">$ subscribe agi-checkpoint</p>
+    <p>AGI Checkpoint: the AI releases worth your time, every Friday. Free Local AI Cheat Sheet when you sign up.</p>
+    <iframe src="https://agicheckpoint.com/embed" title="Subscribe to AGI Checkpoint" loading="lazy" frameborder="0" scrolling="no"></iframe>
+  </div>
+  <div class="jx-footer-links">
+    <a href="https://x.com/jvr0x" rel="noopener">x.com/jvr0x</a>
+    <a href="https://github.com/jvr0x" rel="noopener">github</a>
+    <a href="https://huggingface.co/jvr0x" rel="noopener">huggingface</a>
+    <a href="https://agicheckpoint.com" rel="noopener">agicheckpoint.com</a>
+    <a href="https://ko-fi.com/jvr0x" rel="noopener">ko-fi</a>
+  </div>
+  <p class="jx-sig">Javier &bull; priv/acc | Local AI, security, privacy &amp; crypto</p>
+</footer>
+<!-- /jx:footer -->
 
 <script>
 "use strict";
